@@ -1,2 +1,4 @@
 Header header
-tabletop_proc/SingleTouch[] cursors
+int width
+int height
+ropi_msgs/SingleTouch[] cursors

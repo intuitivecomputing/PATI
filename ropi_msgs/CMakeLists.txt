@@ -9,11 +9,8 @@ find_package(catkin_simple REQUIRED)
 catkin_simple()
 
 ## System dependencies are found with CMake's conventions
-use_boost()
+# use_boost()
 # use_eigen()
-include_directories(include
-  ${PCL_INCLUDE_DIRS}
-)
 
 # cs_add_library(my_lib src/${PROJECT_NAME}/test.cpp)
 
@@ -28,9 +25,9 @@ include_directories(include
 # set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME pc_seg PREFIX "")
 
 
-# cs_install()
+cs_install()
 
 # cs_install_scripts(scripts/my_script.py)
 
-# cs_export()
+cs_export()
 
