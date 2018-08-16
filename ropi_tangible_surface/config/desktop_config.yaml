@@ -1,0 +1,6 @@
+!!python/unicode 'origin_rot': [0.021471743390348824, 0.9647979491302484, -0.26210623854906245,
+  -0.002049708151699192]
+!!python/unicode 'origin_trans': !!python/object/new:future.types.newlist.newlist
+  listitems: [0.3873215615749359, -0.39021849632263184, 1.1699573993682861, 0, 0.02,
+    0]
+!!python/unicode 'ref_frame': !!python/unicode '/kinect2_link'
