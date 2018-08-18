@@ -5,5 +5,6 @@ uint8 CURSOR_RELEASED=2
 
 uint8 id
 uint8 state
+float64 elapsed_time
 geometry_msgs/Point cursor
 geometry_msgs/Point cursor_prev

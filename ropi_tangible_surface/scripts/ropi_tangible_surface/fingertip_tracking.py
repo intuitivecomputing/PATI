@@ -5,11 +5,9 @@ import rospy
 import cv2
 import numpy.ma as ma
 import copy
-import uuid
 import itertools
-# from tabletop_proc.msg import MultiTouch, SingleTouch
 from enum import Enum
-from ropi_msgs.msg import *
+from ropi_msgs.msg import MultiTouch, SingleTouch
 from geometry_msgs.msg import Point
 
 euclidean_dist = lambda pt1, pt2: np.abs(np.linalg.norm(np.array(pt1) - np.array(pt2)))
@@ -34,9 +32,13 @@ class IDManager:
         self.next_id = self.next_valid(self.next_id)
         return self.ids[-1]
 
-    def remove_id(self, id):
-        self.ids.remove(id)
-        self.next_id = min(id, self.next_id)
+    def release_id(self, id):
+        if id in self.ids:
+            self.ids.remove(id)
+            self.next_id = min(id, self.next_id)
+            return True
+        else:
+            return False
 
     def next_valid(self, id):
         while (id in self.ids):
@@ -50,12 +52,25 @@ class TouchTracker:
         self.id = id
         self.position = pt
         self.position_prev = None
+        self.last_time = 0
+        self.time = rospy.get_time()
         self.state = CursorState.CURSOR_PRESSED
         self.release_cnt = 0
-        
+
+    def elapsed_time(self):
+        if self.last_time != 0:
+            return self.time - self.last_time
+        else:
+            return 0
+
     def update(self, pos):
         if pos is not None:
+            # clear release cnt
             self.release_cnt = 0
+            # time each update
+            self.last_time = self.time
+            self.time = rospy.get_time()
+            # update touch point
             self.position_prev = self.position
             self.position = pos
             self.state = CursorState.CURSOR_DRAGGED
@@ -65,7 +80,7 @@ class TouchTracker:
             self.release_cnt += 1
 
     def is_released(self):
-        if self.state == CursorState.CURSOR_RELEASED:
+        if self.release_cnt > 15:
             return True
         else:
             return False
@@ -74,6 +89,7 @@ class TouchTracker:
         msg = SingleTouch()
         msg.id = self.id
         msg.state = self.state
+        msg.elapsed_time = self.elapsed_time()
         msg.cursor = Point(self.position[0], self.position[1], 0)
         msg.cursor_prev = Point(self.position_prev[0], self.position_prev[1], 0)
         return msg
@@ -107,8 +123,14 @@ class TrackerManager:
             if not i in processed_curs:
                 cur.update(None)
                 if cur.is_released():
-                    self.cursors.remove(cur)
-    
+                    self.release_cursor(cur)
+
+    def release_cursor(self, cur):
+        if self.id_manager.release_id(cur.id):
+            self.cursors.remove(cur)
+        else:
+            print('Cursor id release unsuccessful!!')
+
     def make_msg(self):
         msg = MultiTouch()
         msg.width = self.width

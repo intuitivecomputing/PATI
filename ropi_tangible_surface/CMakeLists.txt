@@ -9,15 +9,20 @@ find_package(catkin_simple REQUIRED)
 
 catkin_simple()
 
-include_directories(3rdparty)
+include_directories(3rdparty 3rdparty/oscpack)
 ## System dependencies are found with CMake's conventions
 use_boost()
-use_eigen()
+# use_eigen()
 
-
+set(TUIO_PATH 3rdparty/TUIO)
+set(OSC_PATH 3rdparty/oscpack)
 # cs_add_library(my_lib src/${PROJECT_NAME}/test.cpp)
+set(COMMON_TUIO_SOURCES ${TUIO_PATH}/TuioTime.cpp ${TUIO_PATH}/TuioPoint.cpp ${TUIO_PATH}/TuioContainer.cpp ${TUIO_PATH}/TuioObject.cpp ${TUIO_PATH}/TuioCursor.cpp ${TUIO_PATH}/TuioBlob.cpp ${TUIO_PATH}/TuioDispatcher.cpp ${TUIO_PATH}/TuioManager.cpp  ${TUIO_PATH}/OneEuroFilter.cpp)
+set(SERVER_TUIO_SOURCES ${TUIO_PATH}/TuioServer.cpp ${TUIO_PATH}/UdpSender.cpp ${TUIO_PATH}/TcpSender.cpp ${TUIO_PATH}/WebSockSender.cpp ${TUIO_PATH}/FlashSender.cpp)
+set(CLIENT_TUIO_SOURCES ${TUIO_PATH}/TuioClient.cpp ${TUIO_PATH}/OscReceiver.cpp ${TUIO_PATH}/UdpReceiver.cpp ${TUIO_PATH}/TcpReceiver.cpp)
+set(OSC_SOURCES ${OSC_PATH}/osc/OscTypes.cpp ${OSC_PATH}/osc/OscOutboundPacketStream.cpp ${OSC_PATH}/osc/OscReceivedElements.cpp ${OSC_PATH}/osc/OscPrintReceivedElements.cpp ${OSC_PATH}/ip/posix/NetworkingUtils.cpp ${OSC_PATH}/ip/posix/UdpSocket.cpp)
 
-# cs_add_executable(${PROJECT_NAME}_node src/test_node.cpp)
+cs_add_executable(tuio_node src/tuio_server.cpp ${COMMON_TUIO_SOURCES} ${SERVER_TUIO_SOURCES} ${OSC_SOURCES})
 # target_link_libraries(${PROJECT_NAME}_node my_lib)
 
 ## Rename C++ executable without prefix
