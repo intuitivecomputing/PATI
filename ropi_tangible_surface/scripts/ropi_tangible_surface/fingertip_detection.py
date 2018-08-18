@@ -112,7 +112,7 @@ class FingertipDetection:
             if tip_window.size > 0:
                 tip_depth = tip_window.max()
                 if self.debug:
-                    print('depth: ', tip_depth)
+                    # print('depth: ', tip_depth)
                     cv2.rectangle(
                         self.debug_img,
                         tuple(
