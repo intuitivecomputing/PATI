@@ -1,4 +1,4 @@
 Header header
-uint32 width
-uint32 height
+int32 width
+int32 height
 ropi_msgs/SingleTouch[] cursors
