@@ -72,12 +72,12 @@ class TouchTracker:
             self.position = pos
             self.state = CursorState['DRAGGED']
         else:
-            if self.release_cnt > 50:
+            if self.release_cnt > 10:
                 self.state = CursorState['RELEASED']
             self.release_cnt += 1
 
     def is_released(self):
-        if self.release_cnt > 55:
+        if self.release_cnt > 12:
             return True
         else:
             return False
@@ -87,6 +87,7 @@ class TouchTracker:
         msg.id = self.id
         msg.state = self.state
         msg.elapsed_time = self.elapsed_time()
+        print('pos: ', self.position)
         msg.cursor = Point(self.position[0], self.position[1], 0)
         msg.cursor_prev = Point(self.position_prev[0], self.position_prev[1], 0)
         return msg
@@ -95,30 +96,44 @@ class TrackerManager:
     def __init__(self, screen_shape):
         self.height, self.width = screen_shape
         self.cursors = []
-        self.move_threshold = 2
+        self.move_threshold = 5
         self.id_manager = IDManager()
 
     def update(self, pts):
         print('update', pts)
         if len(self.cursors) == 0:
-            for pt in pts:
-                new_cursor = TouchTracker(self.id_manager.new_id(), pt)
-                self.cursors.append(new_cursor)
-                print('add pt', new_cursor)
+            self.new_cursors(pts)
         else: 
             self.match_cursors(pts)
+
+    def new_cursors(self, pts):
+        for pt in pts:
+            if not ma.is_masked(pt):
+                new_cursor = TouchTracker(self.id_manager.new_id(), pt)
+                self.cursors.append(new_cursor)
+                print('add pt', new_cursor.id)
 
     def match_cursors(self, pts):
         dists = [[euclidean_dist(cur.position, pt) for pt in pts] for cur in self.cursors]
         dists = ma.masked_greater(dists, self.move_threshold)
+        unmatched_pts = ma.array(pts)
         processed_curs = []
-        while dists.compressed().size > 0:
+        while unmatched_pts.compressed().size > 0 and dists.compressed().size > 0:
             arg_cur, arg_pt = ndargmin(dists)
+            print(dists)
             if not arg_cur in processed_curs:
                 dists[(arg_cur, arg_pt)] = ma.masked
+                unmatched_pts[arg_pt] = ma.masked
                 processed_curs.append(arg_cur)
                 self.cursors[arg_cur].update(pts[arg_pt])
+        print('Processed: ', processed_curs)
 
+        # add new cursors
+        print('pts: ', pts)
+        print('unmatched: ', unmatched_pts)
+        self.new_cursors(unmatched_pts)
+
+        # clear released cursors
         for i, cur in enumerate(self.cursors):
             if not i in processed_curs:
                 cur.update(None)

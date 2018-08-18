@@ -63,7 +63,7 @@ class TangibleSurface:
         # print('points: ' , points)
         # print('cursors: ', self.tracker_manager.cursors)
         self.tracker_manager.update(points)
-
+        print(self.tracker_manager.make_msg())
         self.finger_pub.publish(self.tracker_manager.make_msg())
 
     def rgb_callback(self, data):
