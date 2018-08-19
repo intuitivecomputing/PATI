@@ -1,5 +1,11 @@
 #include <ros/ros.h>
 #include <ros/console.h>
+
+#include <thread>
+#include <mutex>
+#include <list>
+#include <cmath>
+
 #include "ropi_msgs/MultiTouch.h"
 #include "ropi_msgs/SingleTouch.h"
 
@@ -20,10 +26,12 @@ class TouchSender
 	~TouchSender();
 
 	TuioServer *tuio_server;
-	std::list<std::pair<int, TuioCursor *>> cursor_list;
+	std::list<std::pair<int, TuioCursor *> > cursor_list;
 	void touchCallback(const ropi_msgs::MultiTouch::ConstPtr &touches);
 
   private:
+	std::mutex mutex;
+  	
 	ros::Subscriber touch_sub_;
 	int width, height;
 	int screen_width, screen_height;
@@ -42,6 +50,7 @@ class TouchSender
 
 void TouchSender::addCursor(const ropi_msgs::SingleTouch &cursor_msg)
 {
+	std::lock_guard<std::mutex> guard(mutex);
 	std::cout << " Add: " << float(cursor_msg.cursor.x / width) << " " << float(cursor_msg.cursor.y/ height) << std::endl;
 	TuioCursor *cursor = tuio_server->addTuioCursor(float(cursor_msg.cursor.x / width), float(cursor_msg.cursor.y/ height));
 	this->cursor_list.push_back(std::make_pair(cursor_msg.id, cursor));
@@ -49,19 +58,20 @@ void TouchSender::addCursor(const ropi_msgs::SingleTouch &cursor_msg)
 
 void TouchSender::releaseCursor(int id)
 {
+	std::lock_guard<std::mutex> guard(mutex);
+	std::pair<int, TuioCursor *> released_cur;
 	for (auto &cur : this->cursor_list)
 	{
 		if (cur.first == id)
 		{
-			ROS_INFO_STREAM("Releas cursor" << id << cur.first);
-			TuioCursor * released_cur = cur.second;
-			std::cout << released_cur <<std::endl;
-			this->cursor_list.remove(cur);
-			std::cout << released_cur <<std::endl;
-			this->tuio_server->removeTuioCursor(released_cur);
+			ROS_INFO_STREAM("Release cursor: " << id << " " << cur.first);
+			released_cur = cur;
+			break;
 			
 		}
 	}
+	this->tuio_server->removeTuioCursor(released_cur.second);
+	this->cursor_list.remove(released_cur);
 }
 
 void TouchSender::processCursors(const std::vector<ropi_msgs::SingleTouch> &touches)
