@@ -53,6 +53,7 @@ class TouchTracker:
         self.time = rospy.get_time()
         self.state = CursorState['PRESSED']
         self.release_cnt = 0
+        self.smoothing_factor = 0.2
 
     def elapsed_time(self):
         if self.last_time != 0:
@@ -69,7 +70,7 @@ class TouchTracker:
             self.time = rospy.get_time()
             # update touch point
             self.position_prev = self.position
-            self.position = pos
+            self.position = self.position * self.smoothing_factor + (1 - self.smoothing_factor) * pos
             self.state = CursorState['DRAGGED']
         else:
             if self.release_cnt > 10:
