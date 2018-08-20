@@ -23,17 +23,20 @@ euclidean_dist = lambda pt1, pt2: np.linalg.norm(np.array(pt1) - np.array(pt2))
 class TangibleSurface:
     def __init__(self):
         rospack = rospkg.RosPack()
-        print(rospack.get_path('ropi_tangible_surface') + '/config/depth.npy')
-        self.depth_background = np.load(rospack.get_path('ropi_tangible_surface') + '/config/depth.npy')
+        self.root_path = rospack.get_path('ropi_tangible_surface')
+        self.depth_background = np.load(self.root_path + '/config/depth.npy')
+
         self.bridge = CvBridge()
         self.detections = [FingertipDetection()] * 2
         self.finger_pub = rospy.Publisher("touch", MultiTouch, queue_size=50)
         self.skin_pub = rospy.Publisher("skin", Image, queue_size=50)
-        self.rgb_ref_pts = np.array(
-            [(81, 90), (30, 275), (458, 252), (402, 73)], dtype="float32")
-        self.depth_ref_pts = np.array([[(75, 88), (26, 276), (460, 253),
-                                        (397, 76)]])
-        self.tracker_manager = TrackerManager((200, 320))
+        self.ref_pts = np.load(self.root_path + '/config/points.npy')
+        print(np.asarray([self.ref_pts]))
+        # self.rgb_ref_pts = np.array(
+        #     [(81, 90), (30, 275), (458, 252), (402, 73)], dtype="float32")
+        # self.depth_ref_pts = np.array([[(75, 88), (26, 276), (460, 253),
+        #                                 (397, 76)]])
+        self.tracker_manager = TrackerManager((180, 320))
         self.subscribe('/kinect2/sd/image_color_rect', '/kinect2/sd/image_depth_rect')
 
     def subscribe(self, img_topic, depth_topic):
@@ -52,7 +55,7 @@ class TangibleSurface:
         # mask = my_threshold(depth_foreground, 50, 300))
         skin = cv2.bitwise_and(
             depth_foreground, depth_foreground, mask=skin_mask)
-        warped_depth = four_point_transform(skin, self.depth_ref_pts[0])
+        warped_depth = four_point_transform(skin, self.ref_pts)
         points = self.detect_fingertip(warped_depth)
         touch_points = []
         r, c = warped_depth.shape
@@ -86,7 +89,7 @@ class TangibleSurface:
     def depth_callback(self, data):
         try:
             cv_image = self.bridge.imgmsg_to_cv2(data)
-            mask = self.make_mask(self.depth_ref_pts, cv_image.shape)
+            mask = self.make_mask(np.asarray([self.ref_pts]), cv_image.shape)
             masked_image = copy.copy(cv_image)
             masked_image[np.isnan(masked_image)] = 0
             masked_image[~mask] = 0
