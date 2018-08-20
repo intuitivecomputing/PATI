@@ -70,7 +70,8 @@ class TouchTracker:
             self.time = rospy.get_time()
             # update touch point
             self.position_prev = self.position
-            self.position = self.position * self.smoothing_factor + (1 - self.smoothing_factor) * pos
+            self.position = np.int0(np.array(self.position) * self.smoothing_factor + (1 - self.smoothing_factor) * np.array(pos))
+            # self.position = pos
             self.state = CursorState['DRAGGED']
         else:
             if self.release_cnt > 10:
@@ -78,7 +79,7 @@ class TouchTracker:
             self.release_cnt += 1
 
     def is_released(self):
-        if self.release_cnt > 12:
+        if self.release_cnt > 15:
             return True
         else:
             return False
@@ -97,7 +98,7 @@ class TrackerManager:
     def __init__(self, screen_shape):
         self.height, self.width = screen_shape
         self.cursors = []
-        self.move_threshold = 5
+        self.move_threshold = 10
         self.id_manager = IDManager()
 
     def update(self, pts):
@@ -127,6 +128,9 @@ class TrackerManager:
                 unmatched_pts[arg_pt] = ma.masked
                 processed_curs.append(arg_cur)
                 self.cursors[arg_cur].update(pts[arg_pt])
+            # TODO: fix this !!
+            # else:
+            #     dists[(arg_cur, arg_pt)] = ma.masked
         print('Processed: ', processed_curs)
 
         # add new cursors

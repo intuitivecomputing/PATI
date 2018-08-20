@@ -26,12 +26,12 @@ class TouchSender
 	~TouchSender();
 
 	TuioServer *tuio_server;
-	std::list<std::pair<int, TuioCursor *> > cursor_list;
+	std::list<std::pair<int, TuioCursor *>> cursor_list;
 	void touchCallback(const ropi_msgs::MultiTouch::ConstPtr &touches);
 
   private:
 	std::mutex mutex;
-  	
+
 	ros::Subscriber touch_sub_;
 	int width, height;
 	int screen_width, screen_height;
@@ -42,7 +42,6 @@ class TouchSender
 	static const uint8_t CURSOR_DRAGGED = 1;
 	static const uint8_t CURSOR_RELEASED = 2;
 
-	
 	void addCursor(const ropi_msgs::SingleTouch &cursor_msg);
 	void releaseCursor(int id);
 	void processCursors(const std::vector<ropi_msgs::SingleTouch> &touches);
@@ -51,31 +50,46 @@ class TouchSender
 void TouchSender::addCursor(const ropi_msgs::SingleTouch &cursor_msg)
 {
 	std::lock_guard<std::mutex> guard(mutex);
-	std::cout << " Add: " << float(cursor_msg.cursor.x / width) << " " << float(cursor_msg.cursor.y/ height) << std::endl;
-	TuioCursor *cursor = tuio_server->addTuioCursor(float(cursor_msg.cursor.x / width), float(cursor_msg.cursor.y/ height));
-	this->cursor_list.push_back(std::make_pair(cursor_msg.id, cursor));
+	std::list<std::pair<int, TuioCursor *>>::iterator cur = std::find_if(this->cursor_list.begin(), this->cursor_list.end(), [&](const std::pair<int, TuioCursor *> &cur) { return cur.first == cursor_msg.id; });
+	if (cur != this->cursor_list.end())
+	{
+		ROS_INFO_STREAM("Pressed ---> Dragged.");
+		if (cur->second->getTuioTime() == frame_time)
+			return;
+		ROS_INFO_STREAM(" Update: " << float(cursor_msg.cursor.x / width) << " " << float(cursor_msg.cursor.y / height));
+		this->tuio_server->updateTuioCursor(cur->second, float(cursor_msg.cursor.x / width), float(cursor_msg.cursor.y / height));
+	}
+	else
+	{
+		ROS_INFO_STREAM(" Add: " << float(cursor_msg.cursor.x / width) << " " << float(cursor_msg.cursor.y / height));
+		TuioCursor *cursor = tuio_server->addTuioCursor(float(cursor_msg.cursor.x / width), float(cursor_msg.cursor.y / height));
+		cursor->addPositionFilter(1.0f, 0.005f);
+		this->cursor_list.push_back(std::make_pair(cursor_msg.id, cursor));
+	}
 }
 
 void TouchSender::releaseCursor(int id)
 {
 	std::lock_guard<std::mutex> guard(mutex);
-	std::pair<int, TuioCursor *> released_cur;
+	std::list<std::pair<int, TuioCursor *>> released_cursor_list = this->cursor_list;
 	for (auto &cur : this->cursor_list)
 	{
 		if (cur.first == id)
 		{
 			ROS_INFO_STREAM("Release cursor: " << id << " " << cur.first);
-			released_cur = cur;
-			break;
-			
+			this->tuio_server->removeTuioCursor(cur.second);
+			released_cursor_list.remove(cur);
 		}
 	}
-	this->tuio_server->removeTuioCursor(released_cur.second);
-	this->cursor_list.remove(released_cur);
+	this->cursor_list = released_cursor_list;
 }
 
 void TouchSender::processCursors(const std::vector<ropi_msgs::SingleTouch> &touches)
 {
+	for (auto &cur : this->cursor_list)
+	{
+		std::cout << "id: " << cur.first << " " << std::endl;
+	}
 	for (auto &cursor_msg : touches)
 	{
 		ROS_INFO_STREAM("State: " << int(cursor_msg.state));
@@ -91,8 +105,10 @@ void TouchSender::processCursors(const std::vector<ropi_msgs::SingleTouch> &touc
 			{
 				if (cursor_msg.id == cur.first)
 				{
-					std::cout << " Update: " << float(cursor_msg.cursor.x / width) << " " << float(cursor_msg.cursor.y/ height) << std::endl;
-					this->tuio_server->updateTuioCursor(cur.second, float(cursor_msg.cursor.x / width), float(cursor_msg.cursor.y/ height));
+					if (cur.second->getTuioTime() == frame_time)
+						return;
+					std::cout << " Update: " << float(cursor_msg.cursor.x / width) << " " << float(cursor_msg.cursor.y / height) << std::endl;
+					this->tuio_server->updateTuioCursor(cur.second, float(cursor_msg.cursor.x / width), float(cursor_msg.cursor.y / height));
 					break;
 				}
 			}
@@ -168,9 +184,12 @@ int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "tuio_server");
 	TuioServer *server = NULL;
-	if( argc == 3 ) {
-		server = new TuioServer(argv[1],atoi(argv[2]));
-	} else server = new TuioServer(); // default is UDP port 3333 on localhost
+	if (argc == 3)
+	{
+		server = new TuioServer(argv[1], atoi(argv[2]));
+	}
+	else
+		server = new TuioServer(); // default is UDP port 3333 on localhost
 
 	TouchSender *ts = new TouchSender(server);
 }
