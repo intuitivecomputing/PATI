@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="debug" default="true"/>
+    <include file="$(find ropi_tangible_surface)/launch/kinect2_bridge.launch" >
+        <arg name="output" value="log"/>
+    </include>
+    <!-- <include if="$(arg debug)" file="$(find ropi_tangible_surface)/launch/aruco.launch"  >
+        <arg name="output" value="log"/>
+    </include> -->
+    <node pkg="ropi_tangible_surface" type="tf_origin.py" name="publish_table_origin" output="log" respawn="true" respawn_delay="0">
+        <param name="calibrate_origin" value="false"/>
+    </node>
+
+
+
+    <node pkg="rviz" type="rviz" output="log" name="rviz" args="-d $(find ropi_tangible_surface)/rviz/visualization.rviz" />
+</launch>

@@ -154,7 +154,7 @@ class TangibleSurface:
 
 def main(args):
     rospy.init_node("gest")
-    dp = TangibleSurface(use_skin_color_filter=True)
+    dp = TangibleSurface(use_skin_color_filter=False)
     try:
         rospy.spin()
     except KeyboardInterrupt:

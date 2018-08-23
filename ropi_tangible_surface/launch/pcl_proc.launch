@@ -1,0 +1,233 @@
+<launch>
+    <arg name="cloud_in" default="/kinect2/sd/points" />
+    <node pkg="nodelet" type="nodelet" name="pcl_manager" args="manager" output="screen" />
+    <arg name="manager" default="pcl_manager"/>
+
+    <!-- Run a VoxelGrid filter to clean NaNs and downsample the data -->
+    <node pkg="nodelet" type="nodelet" name="voxel_grid" args="load pcl/VoxelGrid $(arg manager)" output="screen">
+        <remap from="~input" to="$(arg cloud_in)" />
+        <rosparam>
+            <!-- filter_field_name: z
+      filter_limit_min: 0.01
+      filter_limit_max: 1.5
+      filter_limit_negative: False
+      leaf_size: 0.01
+      keep_organized: true -->
+      filter_field_name: z
+      filter_limit_min: 0.0
+      filter_limit_max: 0.15
+      filter_limit_negative: False
+      leaf_size: 0.01
+      keep_organized: true
+      input_frame: /table_origin
+                                                                              <!-- output_frame: /table_origin -->
+        </rosparam>
+    </node>
+
+    <node pkg="nodelet" type="nodelet" name="crop_box" args="load pcl/CropBox $(arg manager)" output="screen">
+        <remap from="~input" to="/voxel_grid/output" />
+        <rosparam>
+            <!-- min_x: -0.55
+        max_x: 0.49
+        min_y: -0.4
+        max_y: 0.15
+        min_z: 0.8
+        max_z: 1.2 -->
+        min_x: 0.0
+        max_x: 1.0
+        min_y: 0.0
+        max_y: 0.6
+        min_z: 0.0
+        max_z: 0.15
+        keep_organized: true
+        input_frame: /table_origin
+        </rosparam>
+    </node>
+
+    <node pkg="nodelet" type="nodelet" name="statistical_outlier_removal" args="load pcl/StatisticalOutlierRemoval $(arg manager)" output="screen">
+        <remap from="~input" to="/crop_box/output" />
+        <rosparam>
+      mean_k: 20
+      stddev: 1.0
+      keep_organized: true
+        </rosparam>
+    </node>
+
+    <!-- Estimate point normals -->
+    <node pkg="nodelet" type="nodelet" name="normal_estimation" args="load pcl/NormalEstimationOMP $(arg manager)" output="screen">
+        <remap from="~input" to="/statistical_outlier_removal/output" />
+        <rosparam>
+      # -[ Mandatory parameters
+      k_search: 15
+      radius_search: 0 
+                                                                                          <!--#0.015-->
+      # Set the spatial locator. Possible values are: 0 (ANN), 1 (FLANN), 2 (organized)
+      spatial_locator: 2
+        </rosparam>
+    </node>
+    <!-- 
+    <node pkg="nodelet" type="nodelet" name="moving_least_square" args="load pcl/MovingLeastSquares $(arg manager)" output="screen">
+        <remap from="~input" to="/extract_objects_indices/output" />
+        <rosparam>
+      # -[ Mandatory parameters
+      k_search: 15
+      search_radius: 0.015
+      # Set the spatial locator. Possible values are: 0 (ANN), 1 (FLANN), 2 (organized)
+      spatial_locator: 2
+      polynomial_order: 1
+      keep_organized: true
+      approximate_sync: true
+        </rosparam>
+    </node> -->
+
+    <!-- Segment the table plane -->
+    <node pkg="nodelet" type="nodelet" name="planar_segmentation" args="load pcl/SACSegmentationFromNormals $(arg manager)" output="screen">
+        <remap from="~input" to="/statistical_outlier_removal/output" />
+        <remap from="~normals" to="/normal_estimation/output" />
+        <rosparam>
+      # -[ Mandatory parameters
+      # model_type:
+      # 0: SACMODEL_PLANE
+      # 1: SACMODEL_LINE
+      # 2: SACMODEL_CIRCLE2D
+      # 3: SACMODEL_CIRCLE3D
+      # 4: SACMODEL_SPHERE
+      # 5: SACMODEL_CYLINDER
+      # 6: SACMODEL_CONE
+      # 7: SACMODEL_TORUS
+      # 8: SACMODEL_PARALLEL_LINE
+      # 9: SACMODEL_PERPENDICULAR_PLANE
+      # 10: SACMODEL_PARALLEL_LINES
+      # 11: SACMODEL_NORMAL_PLANE
+      # 12: SACMODEL_NORMAL_SPHERE
+      # 13: SACMODEL_REGISTRATION
+      # 14: SACMODEL_REGISTRATION_2D
+      # 15: SACMODEL_PARALLEL_PLANE
+      # 16: SACMODEL_NORMAL_PARALLEL_PLANE
+      # 17: SACMODEL_STICK
+      model_type: 11
+      distance_threshold: 0.05
+      max_iterations: 5
+      method_type: 0
+      optimize_coefficients: true
+      normal_distance_weight: 0.15
+      eps_angle: 0.09 # ~5 degrees
+      min_inliers: 1000
+      approximate_sync: true
+        </rosparam>
+    </node>
+
+    <node pkg="nodelet" type="nodelet" name="extract_plane_indices" args="load pcl/ExtractIndices $(arg manager)" output="screen" respawn="true">
+        <remap from="~input" to="/statistical_outlier_removal/output" />
+        <remap from="~indices" to="/planar_segmentation/inliers" />
+        <rosparam>
+      negative: true
+      approximate_sync: true
+        </rosparam>
+    </node>
+
+    <node pkg="nodelet" type="nodelet" name="unity_crop_box" args="load pcl/CropBox $(arg manager)" output="screen">
+        <remap from="~input" to="/extract_plane_indices/output" />
+        <rosparam>
+            <!-- min_x: -0.55
+        max_x: 0.49
+        min_y: -0.4
+        max_y: 0.15
+        min_z: 0.8
+        max_z: 1.2 -->
+        min_x: 0.1
+        max_x: 0.5
+        min_y: 0.3
+        max_y: 0.4
+        min_z: 0.02
+        max_z: 0.15
+        keep_organized: true
+        input_frame: /table_origin
+        </rosparam>
+    </node>
+
+    <node name="unity_extract_object_clusters" pkg="nodelet" type="nodelet" args="load pcl/EuclideanClusterExtraction $(arg manager) ">
+        <remap from="~input" to="/crop_box_unity/output" />
+        <rosparam>
+      cluster_tolerance: 0.015
+      cluster_min_size: 20
+      spatial_locator: 2  # FLANN
+      keep_organized: true
+      approximate_sync: true
+        </rosparam>
+    </node>
+
+    <!-- Project the planar inliers -->
+    <node pkg="nodelet" type="nodelet" name="project_plane_inliers" args="load pcl/ProjectInliers $(arg manager)" output="screen">
+        <remap from="~input" to="/statistical_outlier_removal/output" />
+        <remap from="~indices" to="/planar_segmentation/inliers" />
+        <remap from="~model" to="/planar_segmentation/model" />
+        <rosparam>
+     model_type: 11
+     copy_all_data: false
+     copy_all_fields: true
+     approximate_sync: true
+        </rosparam>
+    </node>
+
+    <!-- Compute the convex hull -->
+    <node pkg="nodelet" type="nodelet" name="convex_hull" args="load pcl/ConvexHull2D $(arg manager)" output="screen">
+        <remap from="~input" to="/project_plane_inliers/output" />
+        <rosparam>
+        approximate_sync: true
+        </rosparam>
+    </node>
+
+    <!-- Extract the object clusters using a polygonal prism -->
+    <node pkg="nodelet" type="nodelet" name="extract_objects_table" args="load pcl/ExtractPolygonalPrismData $(arg manager)" output="screen">
+        <remap from="~input" to="/extract_plane_indices/output" />
+        <remap from="~planar_hull" to="/convex_hull/output" />
+        <rosparam>
+     height_min: 0
+     height_max: 0.5
+     approximate_sync: true
+        </rosparam>
+    </node>
+
+    <node pkg="nodelet" type="nodelet" name="extract_objects_indices" args="load pcl/ExtractIndices $(arg manager)" output="screen">
+        <!-- Extract_plane_indices needs to be negated for this work -->
+        <remap from="~input" to="/extract_plane_indices/output" />
+        <remap from="~indices" to="/extract_objects_table/output" />
+        <rosparam>
+      negative: true
+      approximate_sync: true
+        </rosparam>
+    </node>
+    <!-- <node name="extract_clusters" pkg="nodelet" type="nodelet" args="load pcl/EuclideanClusterExtraction $(arg manager) ">
+        <remap from="~input" to="/extract_objects_indices/output" />
+        <rosparam>
+      cluster_tolerance: 0.03
+      spatial_locator: 2  # FLANN
+      keep_organized: true
+      approximate_sync: true
+        </rosparam>
+    </node> -->
+    <node pkg="nodelet" type="nodelet" name="color_segmentation" args="load pcl/ColorSegmentation $(arg manager)" output="screen">
+        <remap from="~input" to="/crop_box/output" />
+        <rosparam>
+        min_h: 0
+        max_h: 50
+        min_s: 45
+        max_s: 150
+        min_v: 60
+        max_v: 255
+        keep_organized: true
+        input_frame: /table_origin
+        output_frame: /table_origin
+        </rosparam>
+    </node>
+    <!-- <node name="extract_hand" pkg="nodelet" type="nodelet" args="load pcl/EuclideanClusterExtraction $(arg manager) ">
+        <remap from="~input" to="/color_segmentation/output" />
+        <rosparam>
+      cluster_tolerance: 0.03
+      spatial_locator: 0  # FLANN
+      keep_organized: true
+      approximate_sync: true
+        </rosparam>
+    </node> -->
+</launch>
