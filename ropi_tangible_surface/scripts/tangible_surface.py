@@ -132,20 +132,30 @@ class TangibleSurface:
         dst[~mask.astype(np.bool)] = 0
         contours = self.find_contour(mask)
         p = []
-        # filter out objects (hands' contour has nodes at edge)
-        contours = list(
-            filter(lambda cnt: (True in [x[0][1] < 5 for x in cnt]), contours))
+        merge_list = lambda l1, l2: l2 if not l1 else (l1 if not l2 else np.concatenate((l1, l2)))
+        object_contours = []
+        hand_contours = []
         if len(contours) != 0:
-            contours = sorted(
-                contours, key=lambda cnt: cv2.contourArea(cnt), reverse=True)
+            contours = filter(lambda c: cv2.contourArea(c) > 200, contours)
+            contours = np.asarray(sorted(
+                contours, key=lambda cnt: cv2.contourArea(cnt), reverse=True))
+            # filter out objects (hands' contour has nodes at edge)
+            hand_candidate_contours = list(
+                filter(lambda cnt: (True in [x[0][1] < 5 for x in cnt]),
+                       contours))
+            hand_contours = np.asarray(hand_candidate_contours[0:2])
+            for cnt in contours:
+                if not np.any(hand_contours==cnt):
+                    object_contours.append(cnt)
             debug_img = dst.copy()
-            for i, cnt in enumerate(contours[0:2]):
-                self.detections[i].update(cnt, dst, debug_img)
+            for i, cnt in enumerate(hand_candidate_contours[0:2]):
+                p_new = self.detections[i].update(cnt, dst, debug_img)
+                p = merge_list(p, p_new)
                 debug_img = self.detections[i].debug_img
             self.skin_pub.publish(self.bridge.cv2_to_imgmsg(debug_img))
+        # print (object_contours)
         self.detections[0].debug_img = None
         self.detections[1].debug_img = None
-
         return p
 
 
