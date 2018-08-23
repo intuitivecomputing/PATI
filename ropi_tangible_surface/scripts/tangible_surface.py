@@ -38,7 +38,8 @@ class TangibleSurface:
         # self.depth_ref_pts = np.array([[(75, 88), (26, 276), (460, 253),
         #                                 (397, 76)]])
         self.tracker_manager = TrackerManager((450, 800))
-        self.subscribe('/kinect2/sd/image_color_rect', '/kinect2/sd/image_depth_rect')
+        self.subscribe('/kinect2/sd/image_color_rect',
+                       '/kinect2/sd/image_depth_rect')
 
     def subscribe(self, img_topic, depth_topic):
         depth_sub = message_filters.Subscriber(depth_topic, Image)
@@ -47,7 +48,7 @@ class TangibleSurface:
         # self.ts = message_filters.ApproximateTimeSynchronizer(
         #     [depth_sub, rgb_sub], 5, 0.0012)
         self.ts.registerCallback(self.image_callback)
-        
+
     def image_callback(self, depth_in, rgb_in):
         skin_mask = self.rgb_callback(rgb_in)
         cv_depth = self.depth_callback(depth_in)
@@ -131,26 +132,22 @@ class TangibleSurface:
         dst[~mask.astype(np.bool)] = 0
         contours = self.find_contour(mask)
         p = []
+        # filter out objects (hands' contour has nodes at edge)
+        contours = list(
+            filter(lambda cnt: (True in [x[0][1] < 5 for x in cnt]), contours))
         if len(contours) != 0:
             contours = sorted(
                 contours, key=lambda cnt: cv2.contourArea(cnt), reverse=True)
-
-            p = self.detections[0].update(contours[0], dst, dst)
-            if len(contours) > 1:
-                p = p + self.detections[1].update(contours[1], dst,
-                                                  self.detections[0].debug_img)
-                debug_img = self.detections[1].debug_img
-            else:
-                debug_img = self.detections[0].debug_img
-            # for i, cnt in enumerate(contours[0:2]):
-            #     self.detections[i].update(cnt, dst, debug_img)
-            # debug_img = self.detections[i].debug_img
-            # print(p)
+            debug_img = dst.copy()
+            for i, cnt in enumerate(contours[0:2]):
+                self.detections[i].update(cnt, dst, debug_img)
+                debug_img = self.detections[i].debug_img
             self.skin_pub.publish(self.bridge.cv2_to_imgmsg(debug_img))
         self.detections[0].debug_img = None
         self.detections[1].debug_img = None
 
         return p
+
 
 def main(args):
     rospy.init_node("gest")
@@ -159,6 +156,7 @@ def main(args):
         rospy.spin()
     except KeyboardInterrupt:
         print("Shutting down")
+
 
 if __name__ == '__main__':
     main(sys.argv)
