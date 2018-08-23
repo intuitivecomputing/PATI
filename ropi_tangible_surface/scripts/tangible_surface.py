@@ -21,7 +21,8 @@ euclidean_dist = lambda pt1, pt2: np.linalg.norm(np.array(pt1) - np.array(pt2))
 
 
 class TangibleSurface:
-    def __init__(self):
+    def __init__(self, use_skin_color_filter=True):
+        self.use_skin_color_filter = use_skin_color_filter
         rospack = rospkg.RosPack()
         self.root_path = rospack.get_path('ropi_tangible_surface')
         self.depth_background = np.load(self.root_path + '/config/depth.npy')
@@ -36,7 +37,7 @@ class TangibleSurface:
         #     [(81, 90), (30, 275), (458, 252), (402, 73)], dtype="float32")
         # self.depth_ref_pts = np.array([[(75, 88), (26, 276), (460, 253),
         #                                 (397, 76)]])
-        self.tracker_manager = TrackerManager((180, 320))
+        self.tracker_manager = TrackerManager((450, 800))
         self.subscribe('/kinect2/sd/image_color_rect', '/kinect2/sd/image_depth_rect')
 
     def subscribe(self, img_topic, depth_topic):
@@ -53,8 +54,11 @@ class TangibleSurface:
         depth_foreground = self.depth_background - cv_depth
         depth_foreground[depth_foreground < 5] = 0
         # mask = my_threshold(depth_foreground, 50, 300))
-        skin = cv2.bitwise_and(
-            depth_foreground, depth_foreground, mask=skin_mask)
+        if (self.use_skin_color_filter):
+            skin = cv2.bitwise_and(
+                depth_foreground, depth_foreground, mask=skin_mask)
+        else:
+            skin = depth_foreground.copy()
         warped_depth = four_point_transform(skin, self.ref_pts)
         points = self.detect_fingertip(warped_depth)
         touch_points = []
@@ -82,7 +86,7 @@ class TangibleSurface:
             skin_mask = self.filter(skin_mask)
             # skin = cv2.bitwise_and(cv_image, cv_image, mask=skin_mask)
             # self.skin_pub.publish(self.bridge.cv2_to_imgmsg(skin_mask))
-            return cv2.flip(skin_mask, 1)
+            return skin_mask
         except CvBridgeError as e:
             print(e)
 
@@ -93,7 +97,7 @@ class TangibleSurface:
             masked_image = copy.copy(cv_image)
             masked_image[np.isnan(masked_image)] = 0
             masked_image[~mask] = 0
-            return cv2.flip(masked_image, 1)
+            return masked_image
         except CvBridgeError as e:
             print(e)
 
@@ -150,7 +154,7 @@ class TangibleSurface:
 
 def main(args):
     rospy.init_node("gest")
-    dp = TangibleSurface()
+    dp = TangibleSurface(use_skin_color_filter=True)
     try:
         rospy.spin()
     except KeyboardInterrupt:

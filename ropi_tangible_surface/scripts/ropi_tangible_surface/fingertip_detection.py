@@ -75,31 +75,31 @@ class FingertipDetection:
             for i in range(self.defects.shape[0] - 1):
                 s, e, f, d = self.defects[i, 0]
                 sn, en, fn, dn = self.defects[i + 1, 0]
-                # if d > 300 or dn > 300:
-                start = tuple(cnt[s][0])
-                end = tuple(cnt[e][0])
-                far = tuple(cnt[f][0])
-                startn = tuple(cnt[sn][0])
-                endn = tuple(cnt[en][0])
-                farn = tuple(cnt[fn][0])
-                # tip points is in the middle of end and startn
-                tip_pt = tuple(np.int0(cnt[e][0] * 0.5 + cnt[sn][0] * 0.5))
-                tip_dist = self.euclidean_dist(end, startn)
-                tip_angle = np.abs(
-                    self.tip_angle(tip_pt, far, farn) / np.pi * 180)
-                if tip_angle < 45 and tip_dist < 20:
-                    self.tip_points.append(tip_pt)
+                if d > 400 or dn > 400:
+                    start = tuple(cnt[s][0])
+                    end = tuple(cnt[e][0])
+                    far = tuple(cnt[f][0])
+                    startn = tuple(cnt[sn][0])
+                    endn = tuple(cnt[en][0])
+                    farn = tuple(cnt[fn][0])
+                    # tip points is in the middle of end and startn
+                    tip_pt = tuple(np.int0(cnt[e][0] * 0.5 + cnt[sn][0] * 0.5))
+                    tip_dist = self.euclidean_dist(end, startn)
+                    tip_angle = np.abs(
+                        self.tip_angle(tip_pt, far, farn) / np.pi * 180)
+                    if tip_angle < 45 and tip_dist < 20:
+                        self.tip_points.append(tip_pt)
+                        if self.debug:
+                            cv2.line(self.debug_img, tip_pt, far, [0, 0, 255], 1)
+                            cv2.line(self.debug_img, tip_pt, farn, [0, 0, 255], 1)
+                            font = cv2.FONT_HERSHEY_SIMPLEX
+                            cv2.circle(self.debug_img, tip_pt, 2, [100, 0, 255],
+                                    -1)
+                            # cv2.putText(self.debug_img,'angle:' + str(angle),tip_pt, font, 0.5,(255,0,255),2,cv2.LINE_AA)
                     if self.debug:
-                        cv2.line(self.debug_img, tip_pt, far, [0, 0, 255], 1)
-                        cv2.line(self.debug_img, tip_pt, farn, [0, 0, 255], 1)
-                        font = cv2.FONT_HERSHEY_SIMPLEX
-                        cv2.circle(self.debug_img, tip_pt, 2, [100, 0, 255],
-                                   -1)
-                        # cv2.putText(self.debug_img,'angle:' + str(angle),tip_pt, font, 0.5,(255,0,255),2,cv2.LINE_AA)
-                if self.debug:
-                    cv2.circle(self.debug_img, far, 2, [100, 0, 255], -1)
-                    cv2.circle(self.debug_img, start, 2, [255, 0, 0], -1)
-                    cv2.circle(self.debug_img, end, 2, [255, 0, 100], -1)
+                        cv2.circle(self.debug_img, far, 2, [100, 0, 255], -1)
+                        cv2.circle(self.debug_img, start, 2, [255, 0, 0], -1)
+                        cv2.circle(self.debug_img, end, 2, [255, 0, 100], -1)
             self.tip_points = self.filter_tips(self.tip_points)
         return self.tip_points
 

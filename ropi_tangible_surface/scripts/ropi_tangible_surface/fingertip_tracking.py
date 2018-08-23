@@ -74,12 +74,13 @@ class TouchTracker:
             # self.position = pos
             self.state = CursorState['DRAGGED']
         else:
-            if self.release_cnt > 10:
+            if self.release_cnt > 15:
                 self.state = CursorState['RELEASED']
             self.release_cnt += 1
 
+    # TODO: write a service for this
     def is_released(self):
-        if self.release_cnt > 15:
+        if self.release_cnt > 20:
             return True
         else:
             return False
@@ -98,7 +99,7 @@ class TrackerManager:
     def __init__(self, screen_shape):
         self.height, self.width = screen_shape
         self.cursors = []
-        self.move_threshold = 10
+        self.move_threshold = 30
         self.id_manager = IDManager()
 
     def update(self, pts):

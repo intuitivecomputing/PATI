@@ -34,8 +34,8 @@ class TouchSender
 
 	ros::Subscriber touch_sub_;
 	int width, height;
-	int screen_width, screen_height;
-	int window_width, window_height;
+	// int screen_width, screen_height;
+	// int window_width, window_height;
 	TuioTime frame_time;
 
 	static const uint8_t CURSOR_PRESSED = 0;
@@ -56,13 +56,13 @@ void TouchSender::addCursor(const ropi_msgs::SingleTouch &cursor_msg)
 		ROS_INFO_STREAM("Pressed ---> Dragged.");
 		if (cur->second->getTuioTime() == frame_time)
 			return;
-		ROS_INFO_STREAM(" Update: " << float(cursor_msg.cursor.x / width) << " " << float(cursor_msg.cursor.y / height));
-		this->tuio_server->updateTuioCursor(cur->second, float(cursor_msg.cursor.x / width), float(cursor_msg.cursor.y / height));
+		ROS_INFO_STREAM(" Update: " << float((cursor_msg.cursor.x - 1) / width) << " " << float((cursor_msg.cursor.y - 1) / height));
+		this->tuio_server->updateTuioCursor(cur->second, float((cursor_msg.cursor.x - 1) / width), float((cursor_msg.cursor.y - 1) / height));
 	}
 	else
 	{
-		ROS_INFO_STREAM(" Add: " << float(cursor_msg.cursor.x / width) << " " << float(cursor_msg.cursor.y / height));
-		TuioCursor *cursor = tuio_server->addTuioCursor(float(cursor_msg.cursor.x / width), float(cursor_msg.cursor.y / height));
+		ROS_INFO_STREAM(" Add: " << float((cursor_msg.cursor.x - 1) / width) << " " << float((cursor_msg.cursor.y - 1) / height));
+		TuioCursor *cursor = tuio_server->addTuioCursor(float((cursor_msg.cursor.x - 1) / width), float((cursor_msg.cursor.y - 1) / height));
 		cursor->addPositionFilter(1.0f, 0.005f);
 		this->cursor_list.push_back(std::make_pair(cursor_msg.id, cursor));
 	}
@@ -107,8 +107,8 @@ void TouchSender::processCursors(const std::vector<ropi_msgs::SingleTouch> &touc
 				{
 					if (cur.second->getTuioTime() == frame_time)
 						return;
-					std::cout << " Update: " << float(cursor_msg.cursor.x / width) << " " << float(cursor_msg.cursor.y / height) << std::endl;
-					this->tuio_server->updateTuioCursor(cur.second, float(cursor_msg.cursor.x / width), float(cursor_msg.cursor.y / height));
+					std::cout << " Update: " << float((cursor_msg.cursor.x - 1) / width) << " " << float((cursor_msg.cursor.y - 1) / height) << std::endl;
+					this->tuio_server->updateTuioCursor(cur.second, float((cursor_msg.cursor.x - 1) / width), float((cursor_msg.cursor.y - 1) / height));
 					break;
 				}
 			}
@@ -156,7 +156,7 @@ void TouchSender::touchCallback(const ropi_msgs::MultiTouch::ConstPtr &msg)
 }
 
 TouchSender::TouchSender(TuioServer *server)
-	: screen_width(1024), screen_height(768), window_width(320), window_height(200)
+	//: screen_width(1024), screen_height(768), window_width(320), window_height(200)
 {
 	ros::NodeHandle nh;
 	TuioTime::initSession();
@@ -165,7 +165,7 @@ TouchSender::TouchSender(TuioServer *server)
 	tuio_server = server;
 	tuio_server->setSourceName("ROS");
 	tuio_server->setVerbose(true);
-	tuio_server->setInversion(false, true, false);
+	tuio_server->setInversion(true, true, false);
 	tuio_server->enableObjectProfile(false);
 	tuio_server->enableBlobProfile(false);
 	touch_sub_ = nh.subscribe("touch", 100, &TouchSender::touchCallback, this);
