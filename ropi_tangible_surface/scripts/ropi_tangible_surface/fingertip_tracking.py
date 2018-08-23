@@ -123,14 +123,12 @@ class TrackerManager:
         while unmatched_pts.compressed().size > 0 and dists.compressed().size > 0:
             arg_cur, arg_pt = ndargmin(dists)
             print(dists)
+            dists[(arg_cur, arg_pt)] = ma.masked
+            unmatched_pts[arg_pt] = ma.masked
             if not arg_cur in processed_curs:
-                dists[(arg_cur, arg_pt)] = ma.masked
-                unmatched_pts[arg_pt] = ma.masked
                 processed_curs.append(arg_cur)
                 self.cursors[arg_cur].update(pts[arg_pt])
             # TODO: fix this !!
-            # else:
-            #     dists[(arg_cur, arg_pt)] = ma.masked
         print('Processed: ', processed_curs)
 
         # add new cursors
