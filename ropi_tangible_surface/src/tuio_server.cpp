@@ -5,6 +5,7 @@
 #include <mutex>
 #include <list>
 #include <cmath>
+#include <string>
 
 #include "ropi_msgs/MultiTouch.h"
 #include "ropi_msgs/SingleTouch.h"
@@ -26,7 +27,7 @@ class TouchSender
 	~TouchSender();
 
 	TuioServer *tuio_server;
-	std::list<std::pair<int, TuioCursor *>> cursor_list;
+	std::list<std::pair<std::string, TuioCursor *>> cursor_list;
 	void touchCallback(const ropi_msgs::MultiTouch::ConstPtr &touches);
 
   private:
@@ -43,14 +44,14 @@ class TouchSender
 	static const uint8_t CURSOR_RELEASED = 2;
 
 	void addCursor(const ropi_msgs::SingleTouch &cursor_msg);
-	void releaseCursor(int id);
+	void releaseCursor(std::string id);
 	void processCursors(const std::vector<ropi_msgs::SingleTouch> &touches);
 };
 
 void TouchSender::addCursor(const ropi_msgs::SingleTouch &cursor_msg)
 {
 	std::lock_guard<std::mutex> guard(mutex);
-	std::list<std::pair<int, TuioCursor *>>::iterator cur = std::find_if(this->cursor_list.begin(), this->cursor_list.end(), [&](const std::pair<int, TuioCursor *> &cur) { return cur.first == cursor_msg.id; });
+	std::list<std::pair<std::string, TuioCursor *>>::iterator cur = std::find_if(this->cursor_list.begin(), this->cursor_list.end(), [&](const std::pair<std::string, TuioCursor *> &cur) { return cur.first == cursor_msg.id; });
 	if (cur != this->cursor_list.end())
 	{
 		ROS_INFO_STREAM("Pressed ---> Dragged.");
@@ -68,10 +69,10 @@ void TouchSender::addCursor(const ropi_msgs::SingleTouch &cursor_msg)
 	}
 }
 
-void TouchSender::releaseCursor(int id)
+void TouchSender::releaseCursor(std::string id)
 {
 	std::lock_guard<std::mutex> guard(mutex);
-	std::list<std::pair<int, TuioCursor *>> released_cursor_list = this->cursor_list;
+	std::list<std::pair<std::string, TuioCursor *>> released_cursor_list = this->cursor_list;
 	for (auto &cur : this->cursor_list)
 	{
 		if (cur.first == id)

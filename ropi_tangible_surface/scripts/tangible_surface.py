@@ -1,45 +1,64 @@
 #!/usr/bin/env python
 from ropi_tangible_surface.common_imports import *
+import copy
+
+import cv2
 
 import rospy
 import rospkg
 import message_filters
-import copy
 from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
+from geometry_msgs.msg import Point
+
+from ropi_msgs.msg import MultiTouch, SingleTouch
+from ropi_msgs.srv import RegionSelection
+
 from ropi_tangible_surface.transform import four_point_transform
 from ropi_tangible_surface.fingertip_detection import *
 from ropi_tangible_surface.fingertip_tracking import *
-import cv2
-from ropi_msgs.msg import MultiTouch, SingleTouch
-from geometry_msgs.msg import Point
+
+from ropi_tangible_surface.selection import *
+
+
 
 my_threshold = lambda img, l, u: (img < u) * (img > l) * img
 flip_array = lambda a: np.hstack((np.hsplit(a, 2)[1], np.hsplit(a, 2)[0]))
 tip_angle = lambda tip_pt, pt1, pt2: np.arctan2(pt2[1] - tip_pt[1], pt2[0] - tip_pt[0]) - np.arctan2(pt1[1] - tip_pt[1], pt1[0] - tip_pt[0])
 euclidean_dist = lambda pt1, pt2: np.linalg.norm(np.array(pt1) - np.array(pt2))
 
-
 class TangibleSurface:
-    def __init__(self, use_skin_color_filter=True):
+    def __init__(self, resolution = (450, 800), use_skin_color_filter=True):
+        # Constants and params
+        self.resolution = resolution
+        self.aspect_ratio = resolution[0] / resolution[1]
         self.use_skin_color_filter = use_skin_color_filter
-        rospack = rospkg.RosPack()
-        self.root_path = rospack.get_path('ropi_tangible_surface')
-        self.depth_background = np.load(self.root_path + '/config/depth.npy')
+        self.load_data()
+        self.on_init()
 
-        self.bridge = CvBridge()
-        self.detections = [FingertipDetection()] * 2
-        self.finger_pub = rospy.Publisher("touch", MultiTouch, queue_size=50)
-        self.skin_pub = rospy.Publisher("skin", Image, queue_size=50)
+    def load_data(self):
+        self.root_path = rospkg.RosPack().get_path('ropi_tangible_surface')
         self.ref_pts = np.load(self.root_path + '/config/points.npy')
         print(np.asarray([self.ref_pts]))
-        # self.rgb_ref_pts = np.array(
-        #     [(81, 90), (30, 275), (458, 252), (402, 73)], dtype="float32")
-        # self.depth_ref_pts = np.array([[(75, 88), (26, 276), (460, 253),
-        #                                 (397, 76)]])
-        self.tracker_manager = TrackerManager((450, 800))
+        self.depth_background = np.load(self.root_path + '/config/depth.npy')
+
+    def on_init(self):
+        # Instances
+        self.bridge = CvBridge()
+        self.detections = [FingertipDetection()] * 2
+        self.tracker_manager = TrackerManager(self.resolution)
+        # publish amd subscribe
+        self.finger_pub = rospy.Publisher("touch", MultiTouch, queue_size=50)
+        self.skin_pub = rospy.Publisher("skin", Image, queue_size=50)
         self.subscribe('/kinect2/sd/image_color_rect',
                        '/kinect2/sd/image_depth_rect')
+        self.init_servers()
+
+    def init_servers(self):
+        self.region_selection_server = rospy.Service('region_selection', RegionSelection, self.handle_region_selection)
+
+    def handle_region_selection(self, req):
+        rect = NormalizedRect(req.center, req.hradius, req.vradius, self.resolution)
 
     def subscribe(self, img_topic, depth_topic):
         depth_sub = message_filters.Subscriber(depth_topic, Image)

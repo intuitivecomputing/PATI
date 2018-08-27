@@ -9,6 +9,7 @@ import itertools
 from enum import Enum
 from ropi_msgs.msg import MultiTouch, SingleTouch
 from geometry_msgs.msg import Point
+from ropi_tangible_surface.base_classes import *
 
 euclidean_dist = lambda pt1, pt2: np.abs(np.linalg.norm(np.array(pt1) - np.array(pt2)))
 ndargmin = lambda arr: np.unravel_index(arr.argmin(), arr.shape)
@@ -44,9 +45,10 @@ class IDManager:
 
 
 
-class TouchTracker:
-    def __init__(self, id, pt):
-        self.id = id
+class TouchTracker(TrackerBase):
+    def __init__(self, pt):
+        super(TouchTracker, self).__init__()
+        # self.id = id
         self.position = pt
         self.position_prev = pt
         self.last_time = 0
@@ -87,7 +89,7 @@ class TouchTracker:
 
     def make_msg(self):
         msg = SingleTouch()
-        msg.id = self.id
+        msg.id = self.id.hex
         msg.state = self.state
         msg.elapsed_time = self.elapsed_time()
         print('pos: ', self.position)
@@ -100,7 +102,7 @@ class TrackerManager:
         self.height, self.width = screen_shape
         self.cursors = []
         self.move_threshold = 30
-        self.id_manager = IDManager()
+        # self.id_manager = IDManager()
 
     def update(self, pts):
         print('update', pts)
@@ -112,9 +114,9 @@ class TrackerManager:
     def new_cursors(self, pts):
         for pt in pts:
             if not ma.is_masked(pt):
-                new_cursor = TouchTracker(self.id_manager.new_id(), pt)
+                new_cursor = TouchTracker(pt)
                 self.cursors.append(new_cursor)
-                print('add pt', new_cursor.id)
+                print('add pt', new_cursor.id.hex)
 
     def match_cursors(self, pts):
         dists = [[euclidean_dist(cur.position, pt) for pt in pts] for cur in self.cursors]
@@ -145,10 +147,11 @@ class TrackerManager:
                     self.release_cursor(cur)
 
     def release_cursor(self, cur):
-        if self.id_manager.release_id(cur.id):
-            self.cursors.remove(cur)
-        else:
-            print('Cursor id release unsuccessful!!')
+        self.cursors.remove(cur)
+        # if self.id_manager.release_id(cur.id):
+        #     self.cursors.remove(cur)
+        # else:
+        #     print('Cursor id release unsuccessful!!')
 
     def make_msg(self):
         msg = MultiTouch()
