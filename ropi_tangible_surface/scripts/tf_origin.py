@@ -41,10 +41,10 @@ if __name__ == '__main__':
                 q = quaternion_from_euler(-math.pi / 2.0, -math.pi / 2.0, 0)
                 rot = quaternion_multiply(rot, q)
                 data = {'ref_frame': '/kinect2_link', 'origin_trans': list(trans), 'origin_rot': rot.tolist()}
-                with open(os.path.join(rospack.get_path("tabletop_proc"), "config", "desktop_config.yaml"), 'w') as outfile:
+                with open(os.path.join(rospack.get_path("ropi_tangible_surface"), "config", "desktop_config.yaml"), 'w') as outfile:
                     yaml.dump(data, outfile)
         else:
-            with open(os.path.join(rospack.get_path("tabletop_proc"), "config", "desktop_config.yaml")) as f:
+            with open(os.path.join(rospack.get_path("ropi_tangible_surface"), "config", "desktop_config.yaml")) as f:
                 loaded_data = yaml.load(f)
             br.sendTransform(loaded_data.get('origin_trans'), loaded_data.get('origin_rot'), rospy.Time.now(),"table_origin", loaded_data.get('ref_frame'))
 		
