@@ -6,8 +6,15 @@ class TrackerBase(object):
     def __init__(self):
         self.id = uuid.uuid4()
 
+    def update(self, updates):
+        raise NotImplementedError
+
 
 
 class TrackingManagerBase(object):
     def __init__(self):
-        self.trackers = []
+        # self.trackers = []
+        pass
+
+    def update(self, updates):
+        raise NotImplementedError

@@ -60,14 +60,13 @@ class NormalizedRect:
 
 SelectionType = {'REGION_SELECTION': 0, 'OBJECT_SELECTION': 1}
 
-class Selection:
-    def __init__(self, guid, selection_type, region):
-        #: str:unity generated guid
-        self.guid = guid 
-        #: int: enum dict SelectionType
-        self.type = selection_type 
-        #: NormalizedRect: region rect 
-        self.region = region 
+class Selection(TrackerBase):
+    TYPE = {TYPE_OBJECT_SELECTION: 0, TYPE_AREA_SELECTION: 1}
+    def __init__(self, msg):
+        super(ObjectTracker, self).__init__()
+        self.id = msg.guid
+        self.type = msg.type
+        self.normalized_rect = NormalizedRect(msg.center, msg.hradius, msg.vradius, self.resolution)
 
     def update(self, selection):
         self.type = selection.type
