@@ -72,13 +72,21 @@ class TangibleSurface:
             skin_mask = self.filter_skin(cv_rgb)
             skin = cv2.bitwise_and(
                 depth_foreground, depth_foreground, mask=skin_mask)
+            objects = cv2.bitwise_and(
+                depth_foreground, depth_foreground, mask=~skin_mask)
         else:
             skin = depth_foreground.copy()
+            objects = depth_foreground.copy()
+        objects_warped = four_point_transform(objects, self.ref_pts)
+        self.selection_manager.update_image(objects_warped)
+
         warped_depth = four_point_transform(skin, self.ref_pts)
         points = self.detect_fingertip(warped_depth)
         self.tracker_manager.update(points)
+        
         print(self.tracker_manager.make_msg())
         self.finger_pub.publish(self.tracker_manager.make_msg())
+
 
     def rgb_callback(self, data):
         try:

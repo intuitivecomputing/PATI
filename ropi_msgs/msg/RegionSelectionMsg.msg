@@ -3,6 +3,6 @@ uint8 TYPE_AREA_SELECTION = 1
 
 string guid
 geometry_msgs/Point center
-float32 hradius
-float32 vradius
+float32 width
+float32 height
 uint8 type
