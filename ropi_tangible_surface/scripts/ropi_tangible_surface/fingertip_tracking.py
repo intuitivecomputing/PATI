@@ -97,7 +97,7 @@ class TouchTracker(TrackerBase):
         msg.cursor_prev = Point(self.position_prev[0], self.position_prev[1], 0)
         return msg
 
-class TrackerManager:
+class TouchTrackerManager:
     def __init__(self, screen_shape):
         self.height, self.width = screen_shape
         self.cursors = []

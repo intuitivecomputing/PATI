@@ -47,12 +47,18 @@ class TangibleSurface:
         self.bridge = CvBridge()
         self.detections = [FingertipDetection()] * 2
         self.tracker_manager = TouchTrackerManager(self.resolution)
-        self.selection_manager = SelectionManager(self.resolution)
         # publish amd subscribe
         self.finger_pub = rospy.Publisher("touch", MultiTouch, queue_size=50)
         self.skin_pub = rospy.Publisher("skin", Image, queue_size=50)
         self.subscribe('/kinect2/sd/image_color_rect',
                        '/kinect2/sd/image_depth_rect')
+        self.init_servers()
+
+    def init_servers(self):
+        self.region_selection_server = rospy.Service('region_selection', RegionSelection, self.handle_region_selection)
+
+    def handle_region_selection(self, req):
+        rect = NormalizedRect(req.center, req.hradius, req.vradius, self.resolution)
 
     def subscribe(self, img_topic, depth_topic):
         depth_sub = message_filters.Subscriber(depth_topic, Image)
@@ -63,19 +69,26 @@ class TangibleSurface:
         self.ts.registerCallback(self.image_callback)
 
     def image_callback(self, depth_in, rgb_in):
-        cv_rgb = self.rgb_callback(rgb_in)
+        skin_mask = self.rgb_callback(rgb_in)
         cv_depth = self.depth_callback(depth_in)
         depth_foreground = self.depth_background - cv_depth
         depth_foreground[depth_foreground < 5] = 0
         # mask = my_threshold(depth_foreground, 50, 300))
         if (self.use_skin_color_filter):
-            skin_mask = self.filter_skin(cv_rgb)
             skin = cv2.bitwise_and(
                 depth_foreground, depth_foreground, mask=skin_mask)
         else:
             skin = depth_foreground.copy()
         warped_depth = four_point_transform(skin, self.ref_pts)
         points = self.detect_fingertip(warped_depth)
+        touch_points = []
+        r, c = warped_depth.shape
+        for p in points:
+            # print(r, c, p[1], p[0])
+            np = Point(p[0] / c, p[1] / r, 0)
+            touch_points.append(np)
+        # print('points: ' , points)
+        # print('cursors: ', self.tracker_manager.cursors)
         self.tracker_manager.update(points)
         print(self.tracker_manager.make_msg())
         self.finger_pub.publish(self.tracker_manager.make_msg())
@@ -83,22 +96,19 @@ class TangibleSurface:
     def rgb_callback(self, data):
         try:
             cv_image = copy.copy(self.bridge.imgmsg_to_cv2(data))
-            return cv_image
+            converted = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
+
+            lower = np.array([0, 45, 60], dtype="uint8")
+            upper = np.array([20, 150, 255], dtype="uint8")
+            #lower = np.array([119, 59, 37], dtype = "uint8")
+            #upper = np.array([150, 255, 255], dtype = "uint8")
+            skin_mask = cv2.inRange(converted, lower, upper)
+            skin_mask = self.filter(skin_mask)
+            # skin = cv2.bitwise_and(cv_image, cv_image, mask=skin_mask)
+            # self.skin_pub.publish(self.bridge.cv2_to_imgmsg(skin_mask))
+            return skin_mask
         except CvBridgeError as e:
             print(e)
-
-    def filter_skin(self, image):
-        converted = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-
-        lower = np.array([0, 45, 60], dtype="uint8")
-        upper = np.array([20, 150, 255], dtype="uint8")
-        #lower = np.array([119, 59, 37], dtype = "uint8")
-        #upper = np.array([150, 255, 255], dtype = "uint8")
-        skin_mask = cv2.inRange(converted, lower, upper)
-        skin_mask = self.filter(skin_mask)
-        # skin = cv2.bitwise_and(cv_image, cv_image, mask=skin_mask)
-        # self.skin_pub.publish(self.bridge.cv2_to_imgmsg(skin_mask))
-        return skin_mask
 
     def depth_callback(self, data):
         try:

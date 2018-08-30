@@ -1,0 +1,8 @@
+uint8 TYPE_OBJECT_SELECTION = 0
+uint8 TYPE_AREA_SELECTION = 1
+
+string guid
+geometry_msgs/Point center
+float32 hradius
+float32 vradius
+uint8 type

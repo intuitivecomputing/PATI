@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 from ropi_tangible_surface.common_imports import *
+from ropi_tangible_surface.base_classes import *
+from ropi_msgs.srv import RegionSelection
 import uuid
+
+import rospy
 
 # class Rect:
 #     def __init__(self, center, radius, width, height):
@@ -15,15 +19,14 @@ import uuid
 #         return (int)self.xmin, (int)self.xmax, (int)self.ymin, (int)self.ymax
 
 class NormalizedRect:
-    def __init__(self, center, hradius, vradius, (height, width)):
+    def __init__(self, center, hradius, vradius, res):
         """ A normalized rect
         """
         self.center = np.array(center)
         self.hradius = hradius
         self.vradius = vradius
-        self.aspect_ratio = height / width
-        self.width = width
-        self.height = height
+        self.height, self.width = res
+        self.aspect_ratio = self.height / self.width
         self.xmin = np.clip (center[0] - hradius, 0, 1)
         self.xmax = np.clip (center[0] + hradius, 0, 1)
         self.ymin = np.clip (center[1] - vradius, 0, 1)
@@ -61,34 +64,50 @@ class NormalizedRect:
 SelectionType = {'REGION_SELECTION': 0, 'OBJECT_SELECTION': 1}
 
 class Selection(TrackerBase):
-    TYPE = {TYPE_OBJECT_SELECTION: 0, TYPE_AREA_SELECTION: 1}
+    TYPE = {'OBJECT_SELECTION': 0, 'AREA_SELECTION': 1}
+    resolution = (450, 800)
     def __init__(self, msg):
-        super(ObjectTracker, self).__init__()
+        super(Selection, self).__init__()
         self.id = msg.guid
         self.type = msg.type
         self.normalized_rect = NormalizedRect(msg.center, msg.hradius, msg.vradius, self.resolution)
+        if self.type == TYPE['OBJECT_SELECTION']:
+            self.detected = False
 
-    def update(self, selection):
-        self.type = selection.type
-        self.region = selection.region
+    @report_type_error('Input variable should be a RegionSelection msg.')
+    def update(self, msg):
+        self.type = selection_msg.type
+        self.normalized_rect = NormalizedRect(msg.center, msg.hradius, msg.vradius, self.resolution)
 
-
-class DetectedObject:
-    def __init__(self):
-        self.uuid = uuid.uuid4()
 
 
 class SelectionManager:
-    def __init__(self):
+    def __init__(self, res):
         #: list of Selection:
-        self.selections = []
+        self.selections = {}
+        self.resolution = res
+        Selection.resolution = res
+        self.region_selection_server = rospy.Service('region_selection', RegionSelection, self.region_selection_callback)
 
-    def add(self, selection):
-        compare_list = [s.guid for s in self.selections]
-        if True in compare_list:
-            self.selections[compare_list.index(True)].update(selection)
-        else:
-            self.selections.append(selection)
+    @report_type_error('Input variable should be a list of msgs.')
+    def update(self, selection_msgs):
+        for msg in selection_msgs:
+            selection = self.selections.get(msg.guid)
+            if selection is not None:
+                selection.update(msg)
+            else:
+                self.selections[msg.guid] = Selection(msg)
 
     def get_selections_with_type(self, selection_type):
-        return [s for s in self.selections if s.type == selection_type]
+        list_of_selections = list(self.selections.values())
+        return [s for s in list_of_selections if s.type == selection_type]
+
+    def get_selections(self):
+        return list(self.selections.values())
+
+    def region_selection_callback(self, req):
+        self.update([req])
+        response = RegionSelectionResponse()
+        response.success = True
+        response.msg = 'Obejcts found.'
+        return response
