@@ -82,7 +82,9 @@ def NormalizedRectangle(Rectangle):
         self.area = width * height
         super(NormalizedRectangle, self).__init__(x1, y1, x2, y2)
 
-    def get_center(self, res)
+    def get_center(self, res):
+        return np.int0(np.dot(self.center, res))
+
     def get_shape(self, res=(1, 1)):
         return np.int0([self.width * res[1], self.height * res[0]])
 
