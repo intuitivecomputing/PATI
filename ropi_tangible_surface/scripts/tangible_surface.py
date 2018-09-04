@@ -226,7 +226,6 @@ class TangibleSurface:
             contours = filter(lambda c: cv2.contourArea(c) > 500 and cv2.contourArea(c) < 1500, contours)
             debug_img = dst.copy()
             objects = self.object_detector.update(contours, dst, debug_img)
-            print(objects)
             debug_img = self.object_detector.debug_img
             self.skin_pub.publish(self.bridge.cv2_to_imgmsg(debug_img))
 
