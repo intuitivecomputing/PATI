@@ -211,7 +211,7 @@ class TangibleSurface:
             # self.skin_pub.publish(self.bridge.cv2_to_imgmsg(obj_debug_img))
 
         return p
-
+    # TODO: infer a grasping point based on free space, shape and position
     def detect_object(self, img):
         threshed = my_threshold(img, 15, 150)
         mask = np.zeros(img.shape, dtype=np.uint8)
