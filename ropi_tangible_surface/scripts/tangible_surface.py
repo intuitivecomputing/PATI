@@ -17,6 +17,7 @@ from ropi_msgs.srv import RegionSelection
 from ropi_tangible_surface.transform import four_point_transform
 from ropi_tangible_surface.fingertip_detection import *
 from ropi_tangible_surface.fingertip_tracking import *
+from ropi_tangible_surface.object_detection import *
 
 from ropi_tangible_surface.selection import *
 
@@ -46,6 +47,7 @@ class TangibleSurface:
         # Instances
         self.bridge = CvBridge()
         self.detections = [FingertipDetection()] * 2
+        self.object_detector = ObjectDetectionManager()
         self.tracker_manager = TouchTrackerManager(self.resolution)
         self.selection_manager = SelectionManager(self.resolution)
         # publish amd subscribe
@@ -77,13 +79,15 @@ class TangibleSurface:
         else:
             skin = depth_foreground.copy()
             objects = depth_foreground.copy()
+        # warpped depth & rgb image for objects detection
+        object_rgb_warpped = four_point_transform(cv_rgb, self.ref_pts)
         objects_warped = four_point_transform(objects, self.ref_pts)
-        self.selection_manager.update_image(objects_warped)
-
+        self.selection_manager.update_image(objects_warped, object_rgb_warpped)
+        # earpprd depth image for fingertip detection
         warped_depth = four_point_transform(skin, self.ref_pts)
         points = self.detect_fingertip(warped_depth)
         self.tracker_manager.update(points)
-        
+
         print(self.tracker_manager.make_msg())
         self.finger_pub.publish(self.tracker_manager.make_msg())
 
@@ -140,6 +144,36 @@ class TangibleSurface:
         mask = np.resize(mask, shape)
         return mask
 
+    # def detect_objects(self, img):
+    #     threshed = my_threshold(img, 10, 150)
+    #     mask = np.zeros(img.shape, dtype=np.uint8)
+    #     mask[threshed > 0] = 255
+    #     dst = img.copy()
+    #     mask = self.filter(mask)
+    #     dst[~mask.astype(np.bool)] = 0
+    #     contours = self.find_contour(mask)
+    #     p = []
+    #     merge_list = lambda l1, l2: l2 if not l1 else (l1 if not l2 else np.concatenate((l1, l2)))
+    #     object_contours = []
+    #     hand_contours = []
+    #     if len(contours) != 0:
+    #         contours = filter(lambda c: cv2.contourArea(c) > 200, contours)
+    #         contours = np.asarray(sorted(
+    #             contours, key=lambda cnt: cv2.contourArea(cnt), reverse=True))
+    #         for cnt in contours:
+    #             if not np.any(hand_contours==cnt):
+    #                 object_contours.append(cnt)
+    #         debug_img = dst.copy()
+    #         for i, cnt in enumerate(object_contours):
+    #             p_new = self.detections[i].update(cnt, dst, debug_img)
+    #             p = merge_list(p, p_new)
+    #             debug_img = self.detections[i].debug_img
+    #         self.skin_pub.publish(self.bridge.cv2_to_imgmsg(debug_img))
+    #     # print (object_contours)
+    #     self.detections[0].debug_img = None
+    #     self.detections[1].debug_img = None
+    #     return p
+
     def detect_fingertip(self, img):
         threshed = my_threshold(img, 0, 300)
         mask = np.zeros(img.shape, dtype=np.uint8)
@@ -165,14 +199,18 @@ class TangibleSurface:
                 if not np.any(hand_contours==cnt):
                     object_contours.append(cnt)
             debug_img = dst.copy()
+            obj_debug_img = dst.copy()
             for i, cnt in enumerate(hand_candidate_contours[0:2]):
                 p_new = self.detections[i].update(cnt, dst, debug_img)
                 p = merge_list(p, p_new)
                 debug_img = self.detections[i].debug_img
-            self.skin_pub.publish(self.bridge.cv2_to_imgmsg(debug_img))
+            objects = self.object_detector.update(object_contours, dst, obj_debug_img)
+            print("objects: ", objects)
+            # self.skin_pub.publish(self.bridge.cv2_to_imgmsg(debug_img))
+            self.skin_pub.publish(self.bridge.cv2_to_imgmsg(obj_debug_img))
         # print (object_contours)
-        self.detections[0].debug_img = None
-        self.detections[1].debug_img = None
+        # self.detections[0].debug_img = None
+        # self.detections[1].debug_img = None
         return p
 
 

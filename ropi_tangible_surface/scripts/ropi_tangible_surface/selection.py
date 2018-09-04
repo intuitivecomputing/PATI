@@ -97,6 +97,11 @@ def NormalizedRectangle(Rectangle):
             return True
         else:
             return False
+
+    def get_real_bound(self, res):
+        xmin, xmax, ymin, ymax = (int)(self.xmin * res[0]), (int)(self.xmax * res[0]), (int)(self.ymin * res[1]), (int)(self.ymax * sres[1])
+        return xmin, xmax, ymin, ymax
+
 # class Rect:
 #     def __init__(self, center, radius, width, height):
 #         self.center = center
@@ -160,7 +165,7 @@ SelectionType = {'REGION_SELECTION': 0, 'OBJECT_SELECTION': 1}
 
 class Selection(TrackerBase):
     TYPE = {'OBJECT_SELECTION': 0, 'AREA_SELECTION': 1}
-    resolution = (450, 800)
+    resolution = (800, 450)
 
     def __init__(self, msg):
         super(Selection, self).__init__()
@@ -174,8 +179,15 @@ class Selection(TrackerBase):
     @report_type_error('Input variable should be a RegionSelection msg.')
     def update(self, msg):
         self.type = selection_msg.type
-        self.normalized_rect = NormalizedRect(
-            msg.center, msg.width, msg.height, self.resolution)
+        self.normalized_rect = NormalizedRectangle(
+            msg.center, msg.width, msg.height)
+
+    def get_mask(self):
+        mask = np.zeros(self.resolution, dtype='uint8')
+        xmin, xmax, ymin, ymax = self.normalized_rect.get_real_bound(self.resolution)
+        mask[xmin:xmax, ymin:ymax] = True
+        return mask
+
 
 
 class SelectionManager:
@@ -188,8 +200,9 @@ class SelectionManager:
             'region_selection', RegionSelection, self.region_selection_callback)
         self.depth_image = None
 
-    def update_image(self, depth_image):
+    def update_image(self, depth_image, rgb_image):
         self.depth_image = depth_image
+        self.rgb_image = rgb_image
 
     @report_type_error('Input variable should be a list of msgs.')
     def update(self, selection_msgs):
@@ -210,11 +223,15 @@ class SelectionManager:
     def region_selection_callback(self, req):
         self.update([req])
         region = self.selections.get(req.guid)
-
+        # TODO: detect objects
         response = RegionSelectionResponse()
         response.success = True
         response.msg = 'Obejcts found.'
         return response
 
-    @staticmethod
-    def detect_objects(depth_img, selection):
+    # @staticmethod
+    # def detect_objects(depth_img, rgb_img, selection):
+    #     mask = self.selection.get_mask()
+    #     masked_depth = cv2.bitwise_and(depth_img, depth_img, mask = mask)
+    #     masked_rgb = cv2.bitwise_and(rgb_img, rgb_img, mask = mask)
+    #     masked_depth[masked_depth < 5] = 0
