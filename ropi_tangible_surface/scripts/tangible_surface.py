@@ -47,7 +47,7 @@ class TangibleSurface:
         # Instances
         self.bridge = CvBridge()
         self.detections = [FingertipDetection()] * 2
-        self.object_detector = ObjectDetectionManager()
+        self.object_detector = ObjectManager()
         self.tracker_manager = TouchTrackerManager(self.resolution)
         self.selection_manager = SelectionManager(self.resolution)
         # publish amd subscribe
@@ -82,13 +82,14 @@ class TangibleSurface:
         # warpped depth & rgb image for objects detection
         object_rgb_warpped = four_point_transform(cv_rgb, self.ref_pts)
         objects_warped = four_point_transform(objects, self.ref_pts)
-        self.selection_manager.update_image(objects_warped, object_rgb_warpped)
+        # self.selection_manager.update_image(objects_warped, object_rgb_warpped)
+        self.detect_object(objects_warped)
         # earpprd depth image for fingertip detection
         warped_depth = four_point_transform(skin, self.ref_pts)
         points = self.detect_fingertip(warped_depth)
         self.tracker_manager.update(points)
 
-        print(self.tracker_manager.make_msg())
+        # print(self.tracker_manager.make_msg())
         self.finger_pub.publish(self.tracker_manager.make_msg())
 
 
@@ -199,19 +200,37 @@ class TangibleSurface:
                 if not np.any(hand_contours==cnt):
                     object_contours.append(cnt)
             debug_img = dst.copy()
-            obj_debug_img = dst.copy()
+            # obj_debug_img = dst.copy()
             for i, cnt in enumerate(hand_candidate_contours[0:2]):
                 p_new = self.detections[i].update(cnt, dst, debug_img)
                 p = merge_list(p, p_new)
                 debug_img = self.detections[i].debug_img
-            objects = self.object_detector.update(object_contours, dst, obj_debug_img)
-            print("objects: ", objects)
+            # objects = self.object_detector.update(object_contours, dst, obj_debug_img)
+            # obj_debug_img = self.object_detector.debug_img
             # self.skin_pub.publish(self.bridge.cv2_to_imgmsg(debug_img))
-            self.skin_pub.publish(self.bridge.cv2_to_imgmsg(obj_debug_img))
-        # print (object_contours)
-        # self.detections[0].debug_img = None
-        # self.detections[1].debug_img = None
+            # self.skin_pub.publish(self.bridge.cv2_to_imgmsg(obj_debug_img))
+
         return p
+
+    def detect_object(self, img):
+        threshed = my_threshold(img, 15, 150)
+        mask = np.zeros(img.shape, dtype=np.uint8)
+        mask[threshed > 0] = 255
+        dst = img.copy()
+        mask = self.filter(mask)
+        dst[~mask.astype(np.bool)] = 0
+        contours = self.find_contour(mask)
+        merge_list = lambda l1, l2: l2 if not l1 else (l1 if not l2 else np.concatenate((l1, l2)))
+        object_contours = []
+        if len(contours) != 0:
+            contours = filter(lambda c: cv2.contourArea(c) > 500 and cv2.contourArea(c) < 1500, contours)
+            debug_img = dst.copy()
+            objects = self.object_detector.update(contours, dst, debug_img)
+            print(objects)
+            debug_img = self.object_detector.debug_img
+            self.skin_pub.publish(self.bridge.cv2_to_imgmsg(debug_img))
+
+        return 
 
 
 def main(args):

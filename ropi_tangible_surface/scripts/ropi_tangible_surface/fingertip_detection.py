@@ -87,7 +87,8 @@ class FingertipDetection:
                     tip_dist = self.euclidean_dist(end, startn)
                     tip_angle = np.abs(
                         self.tip_angle(tip_pt, far, farn) / np.pi * 180)
-                    if tip_angle < 45 and tip_dist < 20:
+                    # print('center: ', self.center_of_mass, ' ', self.depth_img[self.center_of_mass[1], self.center_of_mass[0]])
+                    if tip_angle < 45 and tip_dist < 20 and self.depth_img[self.center_of_mass[1], self.center_of_mass[0]] > 30:
                         self.tip_points.append(tip_pt)
                         if self.debug:
                             cv2.line(self.debug_img, tip_pt, far, [0, 0, 255], 1)
@@ -97,6 +98,8 @@ class FingertipDetection:
                                     -1)
                             # cv2.putText(self.debug_img,'angle:' + str(angle),tip_pt, font, 0.5,(255,0,255),2,cv2.LINE_AA)
                     if self.debug:
+                        cv2.circle(self.debug_img, self.center_of_mass, 2, [100, 0, 255],
+                                    -1)
                         cv2.circle(self.debug_img, far, 2, [100, 0, 255], -1)
                         cv2.circle(self.debug_img, start, 2, [255, 0, 0], -1)
                         cv2.circle(self.debug_img, end, 2, [255, 0, 100], -1)

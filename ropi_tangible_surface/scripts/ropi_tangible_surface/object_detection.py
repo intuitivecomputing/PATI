@@ -5,14 +5,16 @@ import rospy
 import cv2
 
 class ObjectManager:
-    def __init__(self):
+    def __init__(self, debug = True):
         self.init()
+        self.debug = debug
+
 
     def init(self):
         self.detections = []
         self.depth_img = None
         self.debug_img = None
-
+        
     def set_debug_img(self, img):
         if img is not None and (len(img.shape) < 3 or img.shape[2] != 3):
             self.debug_img = cv2.cvtColor(
@@ -20,12 +22,17 @@ class ObjectManager:
         elif img is not None:
             self.debug_img = img
 
-    def update(self, cnts, depth_image, debug_img=None):
+    def update(self, cnts, depth_img, debug_img=None):
         self.init()
         output = []
+        if self.debug and debug_img is None:
+            self.set_debug_img(depth_img)
+        if debug_img is not None:
+            self.set_debug_img(debug_img)
+        self.depth_img = depth_img
         for cnt in cnts:
             detection = ObjectDetection()
-            detection.update(cnt, depth_image, debug_img)
+            detection.update(cnt, self.depth_img, self.debug_img)
             self.detections.append(detection)
             output.append(detection.center_of_mass)
         return output
@@ -41,7 +48,7 @@ class ObjectDetection:
         self.debug = debug
         self.depth_img = None
         self.debug_img = None
-        self.window_size = 5
+        self.debug = debug
 
     @staticmethod
     def euclidean_dist(pt1, pt2):
@@ -88,6 +95,7 @@ class ObjectDetection:
                                      self.moments['m20'] - self.moments['m02'])
             theta = theta / np.pi * 180
         self.center_of_mass = (cx, cy)
+        print (theta)
         # calculate convexity defects
         self.defects = cv2.convexityDefects(self.cnt, self.hull)
         # evaluate defects two by two to get fingertips

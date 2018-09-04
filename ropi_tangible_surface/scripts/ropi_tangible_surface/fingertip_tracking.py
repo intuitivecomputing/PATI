@@ -43,7 +43,7 @@ class IDManager:
             id += 1
         return id
 
-
+DEBUG = False
 
 class TouchTracker(TrackerBase):
     def __init__(self, pt):
@@ -92,7 +92,7 @@ class TouchTracker(TrackerBase):
         msg.id = self.id.hex
         msg.state = self.state
         msg.elapsed_time = self.elapsed_time()
-        print('pos: ', self.position)
+        if DEBUG: print('pos: ', self.position)
         msg.cursor = Point(self.position[0], self.position[1], 0)
         msg.cursor_prev = Point(self.position_prev[0], self.position_prev[1], 0)
         return msg
@@ -105,7 +105,7 @@ class TouchTrackerManager:
         # self.id_manager = IDManager()
 
     def update(self, pts):
-        print('update', pts)
+        if DEBUG: print('update', pts)
         if len(self.cursors) == 0:
             self.new_cursors(pts)
         else: 
@@ -116,7 +116,7 @@ class TouchTrackerManager:
             if not ma.is_masked(pt):
                 new_cursor = TouchTracker(pt)
                 self.cursors.append(new_cursor)
-                print('add pt', new_cursor.id.hex)
+                if DEBUG: print('add pt', new_cursor.id.hex)
 
     def match_cursors(self, pts):
         dists = [[euclidean_dist(cur.position, pt) for pt in pts] for cur in self.cursors]
@@ -125,18 +125,18 @@ class TouchTrackerManager:
         processed_curs = []
         while unmatched_pts.compressed().size > 0 and dists.compressed().size > 0:
             arg_cur, arg_pt = ndargmin(dists)
-            print(dists)
+            if DEBUG: print(dists)
             dists[(arg_cur, arg_pt)] = ma.masked
             unmatched_pts[arg_pt] = ma.masked
             if not arg_cur in processed_curs:
                 processed_curs.append(arg_cur)
                 self.cursors[arg_cur].update(pts[arg_pt])
             # TODO: fix this !!
-        print('Processed: ', processed_curs)
+        if DEBUG: print('Processed: ', processed_curs)
 
         # add new cursors
-        print('pts: ', pts)
-        print('unmatched: ', unmatched_pts)
+        if DEBUG: print('pts: ', pts)
+        if DEBUG: print('unmatched: ', unmatched_pts)
         self.new_cursors(unmatched_pts)
 
         # clear released cursors
@@ -151,7 +151,7 @@ class TouchTrackerManager:
         # if self.id_manager.release_id(cur.id):
         #     self.cursors.remove(cur)
         # else:
-        #     print('Cursor id release unsuccessful!!')
+        #     if DEBUG: print('Cursor id release unsuccessful!!')
 
     def make_msg(self):
         msg = MultiTouch()
