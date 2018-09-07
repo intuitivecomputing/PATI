@@ -4,6 +4,26 @@ from ropi_tangible_surface.common_imports import *
 import rospy
 import cv2
 
+class GraspDataClass:
+    def __init__(self, center, radius, angle, height):
+        self.center = np.asarray(center)
+        self.radius = radius
+        self.angle = angle
+        self.height = height
+    
+    def get_points(self):
+        pt1 = self.center + self.radius * np.array([np.sin(self.angle), np.cos(self.angle)])
+        pt2 = self.center - self.radius * np.array([np.sin(self.angle), np.cos(self.angle)])
+        return tuple(np.int0(pt1)), tuple(np.int0(pt2))
+
+    def draw(self, img, color):
+        debug_img = img.copy()
+        cv2.circle(debug_img, tuple(np.int0(self.center)), int(self.radius), color, 5)
+        pt1, pt2 = self.get_points()
+        print (pt1, pt2)
+        cv2.line(debug_img, pt1, pt2, color, 5)
+        return debug_img
+
 class ObjectManager:
     def __init__(self, debug = True):
         self.init()
@@ -36,6 +56,21 @@ class ObjectManager:
             self.detections.append(detection)
             output.append(out)
         return output
+
+    def get_grasp_data(self):
+        grasp_data = [od.get_grasp_data() for od in self.detections]
+        return grasp_data
+
+    def get_grasp_selected(self, rect):
+        return [od.grasp_data for od in self.detections if od.inside(rect)]
+
+    def draw_selections(self, img, rects):
+        debug_img = img.copy()
+        for rect in rects:
+            color = np.random.randint(0,255,(3)).tolist()
+            for gd in self.get_grasp_selected(rect):
+                debug_img = gd.draw(debug_img, color)
+        return debug_img
 
 class ObjectDetection:
     def __init__(self, debug=True):
@@ -103,8 +138,9 @@ class ObjectDetection:
         rect = cv2.minAreaRect(cnt)
         box = cv2.boxPoints(rect)
         box = np.int0(box)
-        # print (rect)
-        if self.debug: cv2.drawContours(self.debug_img, [box], 0, (0,0,255),2)
+        # print (rect[2])
+        if self.debug:
+            cv2.drawContours(self.debug_img, [box], 0, (0,0,255),2)
 
         ellipse = cv2.fitEllipse(cnt)
 
@@ -117,7 +153,10 @@ class ObjectDetection:
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(self.depth_img, mask = mask)  
         self.object_height = max_val  
         # print(min_val, min_loc, max_val, max_loc)
-        return mask
+        self.grasp_data = GraspDataClass(self.center_of_mass, self.euclidean_dist(box[0], box[2]), rect[2], self.object_height) # center, radius, angle, height
+        # print(self.grasp_data)
+        return self.grasp_data
+
 
     @staticmethod
     def get_major_axis(rect):
@@ -137,5 +176,8 @@ class ObjectDetection:
         # pixel_points = np.transpose(np.nonzero(mask))
         return mask
 
-    def get_grasp_point(self):
-        return self.grasp_points, self.object_height
+    def get_grasp_data(self):
+        return self.grasp_data
+
+    def inside(self, rect):
+        return rect.inside(self.center_of_mass)

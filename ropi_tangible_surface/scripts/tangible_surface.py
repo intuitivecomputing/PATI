@@ -11,7 +11,7 @@ from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
 from geometry_msgs.msg import Point
 
-from ropi_msgs.msg import MultiTouch, SingleTouch
+from ropi_msgs.msg import MultiTouch, SingleTouch, GraspData
 from ropi_msgs.srv import RegionSelection
 
 from ropi_tangible_surface.transform import four_point_transform
@@ -63,6 +63,35 @@ class TangibleSurface:
         # self.ts = message_filters.ApproximateTimeSynchronizer(
         #     [depth_sub, rgb_sub], 5, 0.0012)
         self.ts.registerCallback(self.image_callback)
+        self.region_selection_server = rospy.Service(
+            'region_selection', RegionSelection, self.region_selection_callback)
+
+    def region_selection_callback(self, req):
+        rospy.loginfo("Service Called")
+        self.selection_manager.update([req])
+        region = self.selection_manager.selections.get(req.guid)
+        rect = region.normalized_rect
+        grasp_points = self.object_detector.get_grasp_selected(rect)
+        # TODO: detect objects
+        response = RegionSelectionResponse()
+        rospy.loginfo('Contructing response.')
+        if len(grasp_points) > 0:
+            response.success = True
+            response.message = 'Obejcts found.'
+            grasp_data = []
+            for gp in grasp_points:
+                grasp_datum = GraspData()
+                grasp_datum.center.x = gp.center[0]
+                grasp_datum.center.y = gp.center[1]
+                grasp_datum.radius = gp.radius
+                grasp_datum.angle = gp.angle
+                grasp_datum.height = gp.height
+                grasp_data.append(grasp_datum)
+            response.grasp_data = grasp_data
+        else:
+            response.success = False
+            response.message = 'No obejcts found.'
+        return response
 
     def image_callback(self, depth_in, rgb_in):
         cv_rgb = self.rgb_callback(rgb_in)
@@ -145,36 +174,6 @@ class TangibleSurface:
         mask = np.resize(mask, shape)
         return mask
 
-    # def detect_objects(self, img):
-    #     threshed = my_threshold(img, 10, 150)
-    #     mask = np.zeros(img.shape, dtype=np.uint8)
-    #     mask[threshed > 0] = 255
-    #     dst = img.copy()
-    #     mask = self.filter(mask)
-    #     dst[~mask.astype(np.bool)] = 0
-    #     contours = self.find_contour(mask)
-    #     p = []
-    #     merge_list = lambda l1, l2: l2 if not l1 else (l1 if not l2 else np.concatenate((l1, l2)))
-    #     object_contours = []
-    #     hand_contours = []
-    #     if len(contours) != 0:
-    #         contours = filter(lambda c: cv2.contourArea(c) > 200, contours)
-    #         contours = np.asarray(sorted(
-    #             contours, key=lambda cnt: cv2.contourArea(cnt), reverse=True))
-    #         for cnt in contours:
-    #             if not np.any(hand_contours==cnt):
-    #                 object_contours.append(cnt)
-    #         debug_img = dst.copy()
-    #         for i, cnt in enumerate(object_contours):
-    #             p_new = self.detections[i].update(cnt, dst, debug_img)
-    #             p = merge_list(p, p_new)
-    #             debug_img = self.detections[i].debug_img
-    #         self.skin_pub.publish(self.bridge.cv2_to_imgmsg(debug_img))
-    #     # print (object_contours)
-    #     self.detections[0].debug_img = None
-    #     self.detections[1].debug_img = None
-    #     return p
-
     def detect_fingertip(self, img):
         threshed = my_threshold(img, 0, 300)
         mask = np.zeros(img.shape, dtype=np.uint8)
@@ -211,7 +210,7 @@ class TangibleSurface:
             # self.skin_pub.publish(self.bridge.cv2_to_imgmsg(obj_debug_img))
 
         return p
-    # TODO: infer a grasping point based on free space, shape and position
+    
     def detect_object(self, img):
         threshed = my_threshold(img, 15, 150)
         mask = np.zeros(img.shape, dtype=np.uint8)
@@ -223,12 +222,13 @@ class TangibleSurface:
         merge_list = lambda l1, l2: l2 if not l1 else (l1 if not l2 else np.concatenate((l1, l2)))
         object_contours = []
         if len(contours) != 0:
-            contours = filter(lambda c: cv2.contourArea(c) > 500 and cv2.contourArea(c) < 1500, contours)
+            contours = filter(lambda c: cv2.contourArea(c) > 400 and cv2.contourArea(c) < 1500, contours)
             debug_img = dst.copy()
             objects = self.object_detector.update(contours, dst, debug_img)
             debug_img = self.object_detector.debug_img
+            debug_img = self.selection_manager.draw(debug_img)
+            debug_img = self.object_detector.draw_selections(debug_img, self.selection_manager.get_rects())
             self.skin_pub.publish(self.bridge.cv2_to_imgmsg(debug_img))
-
         return 
 
 

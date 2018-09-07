@@ -8,4 +8,5 @@ float32 height
 uint8 type
 ---
 bool success
+ropi_msgs/GraspData[] grasp_data
 string message
