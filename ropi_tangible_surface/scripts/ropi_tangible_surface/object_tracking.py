@@ -11,3 +11,5 @@ class ObjectTracker(TrackerBase):
     resolution = (450, 800)
     def __init__(self, msg):
         super(ObjectTracker, self).__init__()
+
+# TODO: register detection results
