@@ -1,0 +1,6 @@
+<launch>
+    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
+        <arg name="port" default="9090"/>
+    </include>
+	<node name="file_server" pkg="file_server" type="file_server" output="screen"/>
+</launch>

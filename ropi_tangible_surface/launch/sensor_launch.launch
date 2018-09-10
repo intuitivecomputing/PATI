@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <launch>
     <arg name="debug" default="true"/>
-    <include file="$(find ropi_tangible_surface)/launch/kinect2_bridge.launch" >
+    <include file="$(find ropi_tangible_surface)/launch/kinect2_bridge.launch.xml" >
         <arg name="output" value="log"/>
     </include>
-    <!-- <include if="$(arg debug)" file="$(find ropi_tangible_surface)/launch/aruco.launch"  >
+    <!-- <include if="$(arg debug)" file="$(find ropi_tangible_surface)/launch/aruco.launch.xml"  >
         <arg name="output" value="log"/>
     </include> -->
     <node pkg="ropi_tangible_surface" type="tf_origin.py" name="publish_table_origin" output="log" respawn="true" respawn_delay="0">
