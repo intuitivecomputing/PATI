@@ -8,11 +8,11 @@
         <arg name="reg_method"        value="opencl"/>
         <!-- Use specific depth registration: default, cpu, opencl -->
     </include>
-    <!-- <include if="$(arg debug)" file="$(find ropi_tangible_surface)/launch/aruco.launch.xml"  >
+    <include if="$(arg debug)" file="$(find ropi_tangible_surface)/launch/aruco.launch.xml"  >
         <arg name="output" value="log"/>
-    </include> -->
-    <node pkg="ropi_tangible_surface" type="tf_origin.py" name="publish_table_origin" output="log" respawn="true" respawn_delay="0">
-        <param name="~calibrate_origin" type="bool" value="false"/>
+    </include>
+    <node pkg="ropi_tangible_surface" type="tf_origin.py" name="publish_table_origin" output="screen" respawn="true" respawn_delay="0">
+        <param name="~calibrate_origin" type="bool" value="true"/>
     </node>
 
 

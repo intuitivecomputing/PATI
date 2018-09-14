@@ -20,12 +20,13 @@ import yaml
 
 if __name__ == '__main__':
     rospy.init_node('tf_recorder')
+    set_transform = rospy.get_param('/calibrate_origin', default=False)
     rospack = rospkg.RosPack()
     listener = tf.TransformListener()
     br = tf.TransformBroadcaster()
 
     rate = rospy.Rate(150.0)
-    set_transform = rospy.get_param('calibrate_origin', False)
+    
     while not rospy.is_shutdown():
         if set_transform:
             try:
@@ -36,11 +37,12 @@ if __name__ == '__main__':
             key = input("Press Enter to continue..., f to finish")
             if key == "f":
                 set_transform = False
-                trans = trans + [0, 0.02, 0]
-                # trans = trans + [-0.161/2.0, 0, -0.161/2.0]
+                trans = np.asarray(trans) + [0, 0.02, 0]
+                trans = trans + [0.161/2.0, 0.161/2.0, 0]
                 q = quaternion_from_euler(-math.pi / 2.0, -math.pi / 2.0, 0)
                 rot = quaternion_multiply(rot, q)
-                data = {'ref_frame': '/kinect2_link', 'origin_trans': list(trans), 'origin_rot': rot.tolist()}
+                print(trans, rot)
+                data = {'ref_frame': '/kinect2_link', 'origin_trans': trans.tolist(), 'origin_rot': rot.tolist()}
                 with open(os.path.join(rospack.get_path("ropi_tangible_surface"), "config", "desktop_config.yaml"), 'w') as outfile:
                     yaml.dump(data, outfile)
         else:
