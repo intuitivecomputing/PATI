@@ -75,10 +75,10 @@ class FingertipDetection:
             # put first defect to the end
             self.defects = np.append(self.defects, [self.defects[0, :, :]], axis=0)
             for i in range(self.defects.shape[0] - 1):
-                print (self.defects[i, :])
                 s, e, f, d = self.defects[i, 0, :]
                 sn, en, fn, dn = self.defects[i + 1, 0, :]
-                if self.depth_img[self.center_of_mass[1], self.center_of_mass[0]] > 30 and d > 200 or dn > 200:
+                if self.depth_img[self.center_of_mass[1], self.center_of_mass[0]] > 30 and (d > 200 or dn > 200):
+                    print(self.depth_img[self.center_of_mass[1], self.center_of_mass[0]])
                     start = tuple(cnt[s][0])
                     end = tuple(cnt[e][0])
                     far = tuple(cnt[f][0])
