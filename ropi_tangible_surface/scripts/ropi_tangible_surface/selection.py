@@ -81,7 +81,6 @@ def pairwise(iterable):
 def NormalizedRectangle(Rectangle):
     resolution = (800, 450)
     def __init__(self, center, width, height):
-        print('h')
         x1 = np.clip(center[0] - width, 0, 1)
         x2 = np.clip(center[0] + width, 0, 1)
         y1 = np.clip(center[1] - height, 0, 1)
@@ -251,6 +250,11 @@ class SelectionManager(TrackingManagerBase):
                 selection.update(msg)
             else:
                 self.selections[msg.guid] = Selection(msg)
+
+    def delete(self, id_list):
+        for id in id_list:
+            if id in self.selections.keys():
+                self.selections.pop(id)
 
     def get_selections_with_type(self, selection_type):
         list_of_selections = list(self.selections.values())

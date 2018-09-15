@@ -20,7 +20,7 @@ class GraspDataClass:
         debug_img = img.copy()
         cv2.circle(debug_img, tuple(np.int0(self.center)), int(self.radius), color, 5)
         pt1, pt2 = self.get_points()
-        print (pt1, pt2)
+        # print (pt1, pt2)
         cv2.line(debug_img, pt1, pt2, color, 5)
         return debug_img
 

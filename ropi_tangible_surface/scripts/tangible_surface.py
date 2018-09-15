@@ -12,7 +12,7 @@ from cv_bridge import CvBridge, CvBridgeError
 from geometry_msgs.msg import Point
 
 from ropi_msgs.msg import MultiTouch, SingleTouch, GraspData
-from ropi_msgs.srv import RegionSelection
+from ropi_msgs.srv import RegionSelection, DeleteSelection
 
 from ropi_tangible_surface.transform import four_point_transform
 from ropi_tangible_surface.fingertip_detection import *
@@ -40,7 +40,7 @@ class TangibleSurface:
     def load_data(self):
         self.root_path = rospkg.RosPack().get_path('ropi_tangible_surface')
         self.ref_pts = np.load(self.root_path + '/config/points.npy')
-        print(np.asarray([self.ref_pts]))
+        rospy.loginfo('Load reference points: ' + repr(np.asarray([self.ref_pts])))
         self.depth_background = np.load(self.root_path + '/config/depth.npy')
 
     def on_init(self):
@@ -53,6 +53,7 @@ class TangibleSurface:
         # publish amd subscribe
         self.finger_pub = rospy.Publisher("touch", MultiTouch, queue_size=50)
         self.skin_pub = rospy.Publisher("skin", Image, queue_size=50)
+        self.obj_pub = rospy.Publisher("obj", Image, queue_size=50)
         self.subscribe('/kinect2/sd/image_color_rect',
                        '/kinect2/sd/image_depth_rect')
 
@@ -65,9 +66,21 @@ class TangibleSurface:
         self.ts.registerCallback(self.image_callback)
         self.region_selection_server = rospy.Service(
             'region_selection', RegionSelection, self.region_selection_callback)
+        self.delete_selection_server = rospy.Service(
+            'delete_selection', DeleteSelection, self.delete_selection_callback)
+
+    def delete_selection_callback(self, req):
+        rospy.loginfo("Delete selection service called.")
+        print (self.selection_manager.selections)
+        self.selection_manager.delete([req.guid])
+        print (self.selection_manager.selections)
+        response = DeleteSelectionResponse()
+        response.success = True
+        response.message = 'Selection deleted.'
+        return response
 
     def region_selection_callback(self, req):
-        rospy.loginfo("Service Called")
+        rospy.loginfo("Region selection service called.")
         self.selection_manager.update([req])
         region = self.selection_manager.selections.get(req.guid)
         rect = region.normalized_rect
@@ -75,9 +88,9 @@ class TangibleSurface:
         # TODO: detect objects
         response = RegionSelectionResponse()
         rospy.loginfo('Contructing response.')
-        if len(grasp_points) > 0:
-            response.success = True
-            response.message = 'Obejcts found.'
+        response.success = (len(grasp_points) > 0)
+        response.message = repr(len(grasp_points)) + ' Obejcts found.'
+        if response.success:
             grasp_data = []
             for gp in grasp_points:
                 grasp_datum = GraspData()
@@ -88,9 +101,6 @@ class TangibleSurface:
                 grasp_datum.height = gp.height
                 grasp_data.append(grasp_datum)
             response.grasp_data = grasp_data
-        else:
-            response.success = False
-            response.message = 'No obejcts found.'
         return response
 
     def image_callback(self, depth_in, rgb_in):
@@ -111,11 +121,12 @@ class TangibleSurface:
         # warpped depth & rgb image for objects detection
         object_rgb_warpped = four_point_transform(cv_rgb, self.ref_pts)
         objects_warped = four_point_transform(objects, self.ref_pts)
+
         # self.selection_manager.update_image(objects_warped, object_rgb_warpped)
         self.detect_object(objects_warped)
         # earpprd depth image for fingertip detection
-        warped_depth = four_point_transform(skin, self.ref_pts)
-        points = self.detect_fingertip(warped_depth)
+        depth_warped = four_point_transform(skin, self.ref_pts)
+        points = self.detect_fingertip(depth_warped)
         self.tracker_manager.update(points)
 
         # print(self.tracker_manager.make_msg())
@@ -199,15 +210,15 @@ class TangibleSurface:
                 if not np.any(hand_contours==cnt):
                     object_contours.append(cnt)
             debug_img = dst.copy()
+            debug_img = cv2.cvtColor(
+                debug_img.astype(np.uint8)[:, :, np.newaxis], cv2.COLOR_GRAY2BGR)
             # obj_debug_img = dst.copy()
             for i, cnt in enumerate(hand_candidate_contours[0:2]):
                 p_new = self.detections[i].update(cnt, dst, debug_img)
                 p = merge_list(p, p_new)
                 debug_img = self.detections[i].debug_img
-            # objects = self.object_detector.update(object_contours, dst, obj_debug_img)
-            # obj_debug_img = self.object_detector.debug_img
-            # self.skin_pub.publish(self.bridge.cv2_to_imgmsg(debug_img))
-            # self.skin_pub.publish(self.bridge.cv2_to_imgmsg(obj_debug_img))
+            self.skin_pub.publish(self.bridge.cv2_to_imgmsg(debug_img))
+            
 
         return p
     
@@ -228,7 +239,7 @@ class TangibleSurface:
             debug_img = self.object_detector.debug_img
             debug_img = self.selection_manager.draw(debug_img)
             debug_img = self.object_detector.draw_selections(debug_img, self.selection_manager.get_rects())
-            self.skin_pub.publish(self.bridge.cv2_to_imgmsg(debug_img))
+            self.obj_pub.publish(self.bridge.cv2_to_imgmsg(debug_img))
         return 
 
 

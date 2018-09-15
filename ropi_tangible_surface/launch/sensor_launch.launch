@@ -5,7 +5,7 @@
         <arg name="output" value="log"/>
         <arg name="depth_method"      value="cuda"/>
         <!-- Use specific depth processing: default, cpu, opengl, opencl, cuda, clkde, cudakde -->
-        <arg name="reg_method"        value="opencl"/>
+        <arg name="reg_method"        value="cpu"/>
         <!-- Use specific depth registration: default, cpu, opencl -->
     </include>
     <!-- <include if="$(arg debug)" file="$(find ropi_tangible_surface)/launch/aruco.launch.xml"  >

@@ -76,7 +76,7 @@ class TouchTracker(TrackerBase):
             # self.position = pos
             self.state = CursorState['DRAGGED']
         else:
-            if self.release_cnt > 15:
+            if self.release_cnt > 10:
                 self.state = CursorState['RELEASED']
             self.release_cnt += 1
 
@@ -101,7 +101,7 @@ class TouchTrackerManager:
     def __init__(self, screen_shape):
         self.height, self.width = screen_shape
         self.cursors = []
-        self.move_threshold = 30
+        self.move_threshold = 50
         # self.id_manager = IDManager()
 
     def update(self, pts):

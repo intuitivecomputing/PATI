@@ -11,6 +11,7 @@ from ropi_tangible_surface.transform import four_point_transform
 import numpy as np
 import math
 import cv2
+import argparse
 
 my_threshold = lambda img, l, u: (img < u) * (img > l) * img
 flip_array = lambda a: np.hstack((np.hsplit(a, 2)[1], np.hsplit(a, 2)[0]))
@@ -39,14 +40,14 @@ def show(image, name='Image'):
 
 
 class CalibrateWorkspace:
-    def __init__(self, rgb_topic, depth_topic):
+    def __init__(self, rgb_topic, depth_topic, calib_rgb=False):
         self.bridge = CvBridge()
         
         self.image_rgb = None
         self.image_depth = None
         self.ref_pts = []
-        self.run_rgb_calib = False
-        self.run_depth_calib = True
+        self.run_rgb_calib = calib_rgb
+        self.run_depth_calib = not calib_rgb
         rospack = rospkg.RosPack()
         self.root_path = rospack.get_path('ropi_tangible_surface')
 
@@ -152,12 +153,18 @@ class CalibrateWorkspace:
 
 
 def main(args):
+    
     rospy.init_node("Calibration")
-    calib = CalibrateWorkspace('/kinect2/sd/image_color_rect', '/kinect2/sd/image_depth_rect')
+    calib = CalibrateWorkspace('/kinect2/sd/image_color_rect', '/kinect2/sd/image_depth_rect', calib_rgb=args)
     try:
         rospy.spin()
     except KeyboardInterrupt:
         print("Shutting down")
 
 if __name__ == '__main__':
-    main(sys.argv)
+    parser = argparse.ArgumentParser(description='Callibration type.')
+    parser.add_argument('--calib_rgb', metavar='T/F', type=bool, nargs='+',
+                    help='Calib RGB or Depth')
+    args = parser.parse_args()
+    print (args)
+    main(args.calib_rgb)

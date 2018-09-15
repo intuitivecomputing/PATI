@@ -16,7 +16,7 @@ class FingertipDetection:
         self.debug = debug
         self.depth_img = None
         self.debug_img = None
-        self.window_size = 5
+        self.window_size = 10
 
     @staticmethod
     def euclidean_dist(pt1, pt2):
@@ -72,10 +72,13 @@ class FingertipDetection:
         self.defects = cv2.convexityDefects(self.cnt, self.hull)
         # evaluate defects two by two to get fingertips
         if self.defects is not None:
+            # put first defect to the end
+            self.defects = np.append(self.defects, [self.defects[0, :, :]], axis=0)
             for i in range(self.defects.shape[0] - 1):
-                s, e, f, d = self.defects[i, 0]
-                sn, en, fn, dn = self.defects[i + 1, 0]
-                if d > 400 or dn > 400:
+                print (self.defects[i, :])
+                s, e, f, d = self.defects[i, 0, :]
+                sn, en, fn, dn = self.defects[i + 1, 0, :]
+                if self.depth_img[self.center_of_mass[1], self.center_of_mass[0]] > 30 and d > 200 or dn > 200:
                     start = tuple(cnt[s][0])
                     end = tuple(cnt[e][0])
                     far = tuple(cnt[f][0])
@@ -88,7 +91,7 @@ class FingertipDetection:
                     tip_angle = np.abs(
                         self.tip_angle(tip_pt, far, farn) / np.pi * 180)
                     # print('center: ', self.center_of_mass, ' ', self.depth_img[self.center_of_mass[1], self.center_of_mass[0]])
-                    if tip_angle < 45 and tip_dist < 20 and self.depth_img[self.center_of_mass[1], self.center_of_mass[0]] > 30:
+                    if tip_angle < 60 and tip_angle > 15 and tip_dist < 20 :
                         self.tip_points.append(tip_pt)
                         if self.debug:
                             cv2.line(self.debug_img, tip_pt, far, [0, 0, 255], 1)
@@ -125,7 +128,7 @@ class FingertipDetection:
                             np.array(tip) +
                             np.array([self.window_size, self.window_size])),
                         (255, 200, 200), 1)
-                if tip_depth < 25:
+                if tip_depth < 25 and tip_depth > 10:
                     if self.debug:
                         cv2.circle(self.debug_img, tip, 5, [100, 0, 255], -1)
                     touch_points.append(tip)
