@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="address" default="192.168.31.238"/>
+    <arg name="port" default="3333"/>
+    <node pkg="ropi_tangible_surface" type="tuio_node" name="tuio_server_node" args="$(arg address) $(arg port)" output="log" respawn="true" respawn_delay="0"/>
+    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
+        <arg name="port" default="9090"/>
+    </include>
+	<node name="file_server" pkg="file_server" type="file_server" output="screen"/>
+</launch>

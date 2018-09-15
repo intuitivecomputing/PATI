@@ -217,6 +217,8 @@ class TangibleSurface:
                 p_new = self.detections[i].update(cnt, dst, debug_img)
                 p = merge_list(p, p_new)
                 debug_img = self.detections[i].debug_img
+            if len(p) != 0: 
+                rospy.loginfo('touch points: ' + repr(p))
             self.skin_pub.publish(self.bridge.cv2_to_imgmsg(debug_img))
             
 
