@@ -12,7 +12,7 @@ from cv_bridge import CvBridge, CvBridgeError
 from geometry_msgs.msg import Point
 
 from ropi_msgs.msg import MultiTouch, SingleTouch, GraspData
-from ropi_msgs.srv import RegionSelection, DeleteSelection
+from ropi_msgs.srv import *
 
 from ropi_tangible_surface.transform import four_point_transform
 from ropi_tangible_surface.fingertip_detection import *
@@ -68,6 +68,12 @@ class TangibleSurface:
             'region_selection', RegionSelection, self.region_selection_callback)
         self.delete_selection_server = rospy.Service(
             'delete_selection', DeleteSelection, self.delete_selection_callback)
+        self.move_server = rospy.Service(
+            'move_objects', MoveObjects, self.move_objects_callback)
+
+    def move_objects_callback(self, req):
+        # TODO: Write this
+        raise NotImplementedError
 
     def delete_selection_callback(self, req):
         rospy.loginfo("Delete selection service called.")

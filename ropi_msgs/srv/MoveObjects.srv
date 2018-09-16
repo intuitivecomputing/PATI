@@ -1,0 +1,7 @@
+ropi_msgs/RegionSelectionMsg from
+ropi_msgs/RegionSelectionMsg to
+---
+bool success
+ropi_msgs/GraspData[] pick_data
+ropi_msgs/GraspData[] place_data
+string message
