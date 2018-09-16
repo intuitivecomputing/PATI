@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+    <include file="$(find ropi_tangible_surface)/launch/sensor_launch.launch" />
+    <include file="$(find ropi_tangible_surface)/launch/connection.launch" />
+</launch>
