@@ -3,7 +3,7 @@
     <arg name="debug" default="true"/>
     <include file="$(find ropi_tangible_surface)/launch/kinect2_bridge.launch.xml" >
         <arg name="output" value="log"/>
-        <arg name="depth_method"      value="cuda"/>
+        <arg name="depth_method"      value="opengl"/>
         <!-- Use specific depth processing: default, cpu, opengl, opencl, cuda, clkde, cudakde -->
         <arg name="reg_method"        value="cpu"/>
         <!-- Use specific depth registration: default, cpu, opencl -->
