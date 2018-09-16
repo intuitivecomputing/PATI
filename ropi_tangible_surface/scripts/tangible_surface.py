@@ -71,9 +71,21 @@ class TangibleSurface:
         self.move_server = rospy.Service(
             'move_objects', MoveObjects, self.move_objects_callback)
 
+    def detect_objects_in_region(self, msg):
+        self.selection_manager.update([msg])
+        region = self.selection_manager.selections.get(msg.guid)
+        rect = region.normalized_rect
+        grasp_points = self.object_detector.get_grasp_selected(rect)
+        return grasp_points
+
     def move_objects_callback(self, req):
-        # TODO: Write this
-        raise NotImplementedError
+        # TODO: finish this
+        rospy.loginfo("move objects service called.")
+        grasp_points = self.detect_objects_in_region(req.from_selection)
+        # if there are objects in the region
+        if len(grasp_points) > 0:
+            self.selection_manager.update([req.to_selection])
+            to_region = self.selection_manager.selections.get(req.to_selection.guid)
 
     def delete_selection_callback(self, req):
         rospy.loginfo("Delete selection service called.")
@@ -87,11 +99,11 @@ class TangibleSurface:
 
     def region_selection_callback(self, req):
         rospy.loginfo("Region selection service called.")
-        self.selection_manager.update([req])
-        region = self.selection_manager.selections.get(req.guid)
-        rect = region.normalized_rect
-        grasp_points = self.object_detector.get_grasp_selected(rect)
-        # TODO: detect objects
+        grasp_points = self.detect_objects_in_region(req)
+        # self.selection_manager.update([req])
+        # region = self.selection_manager.selections.get(req.guid)
+        # rect = region.normalized_rect
+        # grasp_points = self.object_detector.get_grasp_selected(rect)
         response = RegionSelectionResponse()
         rospy.loginfo('Contructing response.')
         response.success = (len(grasp_points) > 0)

@@ -1,5 +1,5 @@
-ropi_msgs/RegionSelectionMsg from
-ropi_msgs/RegionSelectionMsg to
+ropi_msgs/RegionSelectionMsg from_selection
+ropi_msgs/RegionSelectionMsg to_selection
 ---
 bool success
 ropi_msgs/GraspData[] pick_data
