@@ -21,6 +21,7 @@ from ropi_tangible_surface.object_detection import *
 from ropi_tangible_surface.object_tracking import *
 
 from ropi_tangible_surface.selection import *
+from pick_and_place import *
 
 
 
@@ -55,6 +56,8 @@ class TangibleSurface:
         
         self.selection_manager = SelectionManager(self.resolution)
 
+        self.robot_interface = PickNPlace()
+
         # publish amd subscribe
         self.finger_pub = rospy.Publisher("touch", MultiTouch, queue_size=50)
         self.skin_pub = rospy.Publisher("skin", Image, queue_size=50)
@@ -87,7 +90,7 @@ class TangibleSurface:
     def move_objects_callback(self, req):
         # TODO: finish this
         rospy.loginfo("move objects service called.")
-        grasp_points = self.detect_objects_in_region(req.from_selection)
+        grasp_points = self.detect_objects_in_region(req.source_selection)
         # if there are objects in the region
         if len(grasp_points) > 0:
             self.selection_manager.update([req.to_selection])

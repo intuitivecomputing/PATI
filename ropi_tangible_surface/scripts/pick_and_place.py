@@ -152,10 +152,10 @@ class PickNPlace(object):
     def pick_and_place(self, pt1, pt2, object_height):
         traj = self.generate_trajectory(pt1, pt2, object_height)
         self.move_traj(traj[:2])
-        rospy.loginfo(("grasp")
+        rospy.loginfo("grasp")
         self.close_gripper()
         self.move_traj(traj[2:])
-        rospy.loginfo(("release")
+        rospy.loginfo("release")
         self.open_gripper()
         # self.move_joints(self.INIT_POS)
 
@@ -188,6 +188,6 @@ class PickNPlace(object):
 
 if __name__ == '__main__':
     rospy.init_node('test', anonymous=True)
-    task = pick_and_place()
-    task.test()
+    task = PickNPlace()
+    task.pick_and_place((412, 211), (89, 196), 0.15)
     rospy.spin()
