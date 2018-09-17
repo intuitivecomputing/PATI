@@ -147,17 +147,21 @@ class NormalizedRect:
         self.width = width
         self.height = height
         self.resolution = res
-        self.aspect_ratio = self.resolution[0] / self.resolution[1]
-        self.xmin = np.clip(center[0] - width, 0, 1)
-        self.xmax = np.clip(center[0] + width, 0, 1)
-        self.ymin = np.clip(center[1] - height, 0, 1)
-        self.ymax = np.clip(center[1] + height, 0, 1)
+        self.xmin = 1 - np.clip(center[0] + width / 2, 0, 1)
+        self.xmax = 1 - np.clip(center[0] - width / 2, 0, 1)
+        self.ymin = np.clip(center[1] - height / 2 , 0, 1)
+        self.ymax = np.clip(center[1] + height / 2, 0, 1)
+        # self.aspect_ratio = self.resolution[0] / self.resolution[1]
+        # self.xmin = np.clip(center[0] - width, 0, 1)
+        # self.xmax = np.clip(center[0] + width, 0, 1)
+        # self.ymin = np.clip(center[1] - height, 0, 1)
+        # self.ymax = np.clip(center[1] + height, 0, 1)
         self.area = (self.xmax - self.xmin) * (self.ymax - self.ymin)
         self.shape = ((int)(self.xmax - self.xmin),
                       (int)(self.ymax - self.ymin))
         self.corners = np.asarray(
             [(self.xmin, self.ymin), (self.xmin, self.ymax), (self.xmax, self.ymax), (self.xmax, self.ymin)])
-
+        
     def inside(self, pt):
         if pt[0] > 1:
             pt = (pt[0] / self.res[0], pt[1] / self.res[1])
@@ -214,7 +218,7 @@ class Selection(TrackerBase):
 
     def get_mask(self):
         mask = np.zeros(self.resolution, dtype='uint8')
-        xmin, xmax, ymin, ymax = self.normalized_rect.get_real_bound(self.resolution)
+        xmin, xmax, ymin, ymax = self.normalized_rect.get_real_bound()
         mask[xmin:xmax, ymin:ymax] = True
         return mask
 
@@ -269,7 +273,7 @@ class SelectionManager(TrackingManagerBase):
     def draw(self, img):
         debug_img = img.copy()
         if len(self.selections.values()) != 0:
-            debug_log('Drawing selection')
+            # debug_log('Drawing selection')
             for s in self.selections.values():
                 debug_img = s.draw(debug_img)
         return debug_img

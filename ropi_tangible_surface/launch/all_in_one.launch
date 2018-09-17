@@ -2,4 +2,7 @@
 <launch>
     <include file="$(find ropi_tangible_surface)/launch/sensor_launch.launch" />
     <include file="$(find ropi_tangible_surface)/launch/connection.launch" />
+    <node pkg="tf" type="static_transform_publisher" name="fixed_broadcaster" args="0 0 0  0 0 0 /base_link /fixed_link 100" />
+    <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0.3 0.76 0.15 0 0 0 /table_origin /base_link 100" />
+    <node pkg="tf" type="static_transform_publisher" name="link2_broadcaster" args="0 0 0.25 0 3.1415926535 0 /tool0 /grasp_point 100" />
 </launch>

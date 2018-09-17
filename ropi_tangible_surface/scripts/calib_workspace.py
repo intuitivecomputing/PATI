@@ -125,28 +125,30 @@ class CalibrateWorkspace:
                     warped = four_point_transform(self.depth_pre, pts)
                     print(warped.shape)
                     show_depth(warped, 'depth_warped')
-                    # cv2.setMouseCallback('depth', self.click_and_crop)
-                    # while True:
-                    #     # display the image and wait for a keypress
-                    #     cv2.imshow('depth', self.depth_pre)
-                    #     key = cv2.waitKey(1) & 0xFF
-
-                    #     # if the 'c' key is pressed, break from the loop
-                    #     if key == ord("c"):
-                    #         break
-                    # pts = np.array(self.ref_pts, dtype = "float32")
-                    # np.save(self.root_path + '/config/depth_points.npy', pts)
-                    # print('Points saved')
-                    # # apply the four point tranform to obtain a "birds eye view" of
-                    # # the image
-                    # warped = four_point_transform(self.depth_pre, pts)
-
-
-                    # # show the original and warped images
-                    # cv2.imshow("Original", self.depth_pre)
-                    # cv2.imshow("Warped", warped)
                     cv2.waitKey(0)
                     self.run_depth_calib = False
+                # show_depth(self.depth_pre, 'depth')
+                # cv2.setMouseCallback('depth', self.click_and_crop)
+                # while True:
+                #     # display the image and wait for a keypress
+                #     # cv2.imshow('depth', self.depth_pre)
+                #     key = cv2.waitKey(1) & 0xFF
+
+                #     # if the 'c' key is pressed, break from the loop
+                #     if key == ord("c"):
+                #         break
+                # pts = np.array(self.ref_pts, dtype = "float32")
+                # np.save(self.root_path + '/config/depth_points.npy', pts)
+                # print('Points saved')
+                # # apply the four point tranform to obtain a "birds eye view" of
+                # # the image
+                # warped = four_point_transform(self.depth_pre, pts)
+
+
+                # # show the original and warped images
+                # cv2.imshow("Original", cv_depth)
+                # cv2.imshow("Warped", warped)
+                    
         except CvBridgeError as e:
             print(e)
 

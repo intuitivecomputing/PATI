@@ -55,7 +55,7 @@ class TouchTracker(TrackerBase):
         self.time = rospy.get_time()
         self.state = CursorState['PRESSED']
         self.release_cnt = 0
-        self.smoothing_factor = 0.2
+        self.smoothing_factor = 0
 
     def elapsed_time(self):
         if self.last_time != 0:
@@ -82,7 +82,7 @@ class TouchTracker(TrackerBase):
 
     # TODO: write a service for this
     def is_released(self):
-        if self.release_cnt > 10:
+        if self.release_cnt > 15:
             return True
         else:
             return False
@@ -97,29 +97,29 @@ class TouchTracker(TrackerBase):
         msg.cursor_prev = Point(self.position_prev[0], self.position_prev[1], 0)
         return msg
 
-class TouchTrackerManager:
+class TouchTrackerManager(TrackingManagerBase):
     def __init__(self, screen_shape):
-        self.height, self.width = screen_shape
-        self.cursors = []
+        self.width, self.height = screen_shape
+        self.trackers = []
         self.move_threshold = 50
         # self.id_manager = IDManager()
 
     def update(self, pts):
         if DEBUG: print('update', pts)
-        if len(self.cursors) == 0:
-            self.new_cursors(pts)
+        if len(self.trackers) == 0:
+            self.new_trackers(pts)
         else: 
-            self.match_cursors(pts)
+            self.match_trackers(pts)
 
-    def new_cursors(self, pts):
+    def new_trackers(self, pts):
         for pt in pts:
             if not ma.is_masked(pt):
                 new_cursor = TouchTracker(pt)
-                self.cursors.append(new_cursor)
+                self.trackers.append(new_cursor)
                 if DEBUG: print('add pt', new_cursor.id.hex)
 
-    def match_cursors(self, pts):
-        dists = [[euclidean_dist(cur.position, pt) for pt in pts] for cur in self.cursors]
+    def match_trackers(self, pts):
+        dists = [[euclidean_dist(cur.position, pt) for pt in pts] for cur in self.trackers]
         dists = ma.masked_greater(dists, self.move_threshold)
         unmatched_pts = ma.array(pts)
         processed_curs = []
@@ -130,26 +130,26 @@ class TouchTrackerManager:
             unmatched_pts[arg_pt] = ma.masked
             if not arg_cur in processed_curs:
                 processed_curs.append(arg_cur)
-                self.cursors[arg_cur].update(pts[arg_pt])
+                self.trackers[arg_cur].update(pts[arg_pt])
             # TODO: fix this !!
         if DEBUG: print('Processed: ', processed_curs)
 
-        # add new cursors
+        # add new trackers
         if DEBUG: print('pts: ', pts)
         if DEBUG: print('unmatched: ', unmatched_pts)
-        self.new_cursors(unmatched_pts)
+        self.new_trackers(unmatched_pts)
 
-        # clear released cursors
-        for i, cur in enumerate(self.cursors):
+        # clear released trackers
+        for i, cur in enumerate(self.trackers):
             if not i in processed_curs:
                 cur.update(None)
                 if cur.is_released():
-                    self.release_cursor(cur)
+                    self.release_tracker(cur)
 
-    def release_cursor(self, cur):
-        self.cursors.remove(cur)
+    def release_tracker(self, cur):
+        self.trackers.remove(cur)
         # if self.id_manager.release_id(cur.id):
-        #     self.cursors.remove(cur)
+        #     self.trackers.remove(cur)
         # else:
         #     if DEBUG: print('Cursor id release unsuccessful!!')
 
@@ -159,7 +159,7 @@ class TouchTrackerManager:
         msg.height = self.height
         msg.header.stamp = rospy.Time.now()
         msg.cursors = []
-        for cur in self.cursors:
+        for cur in self.trackers:
             msg.cursors.append(cur.make_msg())
         return msg
 

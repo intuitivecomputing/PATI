@@ -3,22 +3,23 @@ from ropi_tangible_surface.common_imports import *
 
 import rospy
 import cv2
+import tf
 
 class GraspDataClass:
-    def __init__(self, center, radius, angle, height):
-        self.center = np.asarray(center)
-        self.radius = radius
+    def __init__(self, position, diameter, angle, height):
+        self.position = np.asarray(position)
+        self.diameter = diameter
         self.angle = angle
         self.height = height
     
     def get_points(self):
-        pt1 = self.center + self.radius * np.array([np.sin(self.angle), np.cos(self.angle)])
-        pt2 = self.center - self.radius * np.array([np.sin(self.angle), np.cos(self.angle)])
+        pt1 = self.position + self.diameter * np.array([np.sin(self.angle), np.cos(self.angle)])
+        pt2 = self.position - self.diameter * np.array([np.sin(self.angle), np.cos(self.angle)])
         return tuple(np.int0(pt1)), tuple(np.int0(pt2))
 
     def draw(self, img, color):
         debug_img = img.copy()
-        cv2.circle(debug_img, tuple(np.int0(self.center)), int(self.radius), color, 5)
+        cv2.circle(debug_img, tuple(np.int0(self.position)), int(self.diameter), color, 5)
         pt1, pt2 = self.get_points()
         # print (pt1, pt2)
         cv2.line(debug_img, pt1, pt2, color, 5)
@@ -28,6 +29,7 @@ class ObjectManager:
     def __init__(self, debug = True):
         self.init()
         self.debug = debug
+        self.br = tf.TransformBroadcaster()
 
 
     def init(self):
@@ -55,6 +57,8 @@ class ObjectManager:
             out = detection.update(cnt, self.depth_img, self.debug_img)
             self.detections.append(detection)
             output.append(out)
+
+        
         return output
 
     def get_grasp_data(self):
@@ -153,7 +157,7 @@ class ObjectDetection:
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(self.depth_img, mask = mask)  
         self.object_height = max_val  
         # print(min_val, min_loc, max_val, max_loc)
-        self.grasp_data = GraspDataClass(self.center_of_mass, self.euclidean_dist(box[0], box[2]), rect[2], self.object_height) # center, radius, angle, height
+        self.grasp_data = GraspDataClass(self.center_of_mass, self.euclidean_dist(box[0], box[2]), rect[2], self.object_height) # center, diameter, angle, height
         # print(self.grasp_data)
         return self.grasp_data
 
@@ -167,8 +171,18 @@ class ObjectDetection:
         # ma_x_top, ma_y_top = int(x + ma_x), int(y + ma_y)
         # ma_x_bot, ma_y_bot = int(x - ma_x), int(y - ma_y)
         # return (ma_x_top, ma_y_top), (ma_x_bot, ma_y_bot)
+        axis = None
         rect = np.asarray(rect)
-        return tuple(np.int0((rect[0] + rect[1]) / 2)), tuple(np.int0((rect[2] + rect[3]) / 2))
+        axis1 = ((rect[0] + rect[1]) / 2, (rect[2] + rect[3]) / 2)
+        axis2 = ((rect[0] + rect[3]) / 2, (rect[2] + rect[1]) / 2)
+        axis1_length = ObjectDetection.euclidean_dist(axis1[0], axis1[1])
+        axis2_length = ObjectDetection.euclidean_dist(axis2[0], axis2[1])
+        if axis1_length >= axis2_length:
+            axis = axis2
+        else:
+            axis = axis1
+        axis = tuple(np.int0(axis[0])), tuple(np.int0(axis[1]))
+        return axis
 
     def get_mask(self):
         mask = np.zeros(self.depth_img.shape, np.uint8)

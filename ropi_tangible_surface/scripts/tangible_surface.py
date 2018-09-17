@@ -11,13 +11,14 @@ from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
 from geometry_msgs.msg import Point
 
-from ropi_msgs.msg import MultiTouch, SingleTouch, GraspData
+from ropi_msgs.msg import *
 from ropi_msgs.srv import *
 
 from ropi_tangible_surface.transform import four_point_transform
 from ropi_tangible_surface.fingertip_detection import *
 from ropi_tangible_surface.fingertip_tracking import *
 from ropi_tangible_surface.object_detection import *
+from ropi_tangible_surface.object_tracking import *
 
 from ropi_tangible_surface.selection import *
 
@@ -29,10 +30,10 @@ tip_angle = lambda tip_pt, pt1, pt2: np.arctan2(pt2[1] - tip_pt[1], pt2[0] - tip
 euclidean_dist = lambda pt1, pt2: np.linalg.norm(np.array(pt1) - np.array(pt2))
 
 class TangibleSurface:
-    def __init__(self, resolution = (450, 800), use_skin_color_filter=True):
+    def __init__(self, resolution = (800, 450), use_skin_color_filter=True):
         # Constants and params
         self.resolution = resolution
-        self.aspect_ratio = resolution[0] / resolution[1]
+        # self.aspect_ratio = resolution[0] / resolution[1]
         self.use_skin_color_filter = use_skin_color_filter
         self.load_data()
         self.on_init()
@@ -46,13 +47,18 @@ class TangibleSurface:
     def on_init(self):
         # Instances
         self.bridge = CvBridge()
-        self.detections = [FingertipDetection()] * 2
+        self.touch_detections = [FingertipDetection()] * 2
+        self.touch_tracker_manager = TouchTrackerManager(self.resolution)
+
         self.object_detector = ObjectManager()
-        self.tracker_manager = TouchTrackerManager(self.resolution)
+        self.object_tracker_manager = ObjectTrackerManager(self.resolution)
+        
         self.selection_manager = SelectionManager(self.resolution)
+
         # publish amd subscribe
         self.finger_pub = rospy.Publisher("touch", MultiTouch, queue_size=50)
         self.skin_pub = rospy.Publisher("skin", Image, queue_size=50)
+        self.debug_pub = rospy.Publisher("debug", Image, queue_size=50)
         self.obj_pub = rospy.Publisher("obj", Image, queue_size=50)
         self.subscribe('/kinect2/sd/image_color_rect',
                        '/kinect2/sd/image_depth_rect')
@@ -139,16 +145,17 @@ class TangibleSurface:
         # warpped depth & rgb image for objects detection
         object_rgb_warpped = four_point_transform(cv_rgb, self.ref_pts)
         objects_warped = four_point_transform(objects, self.ref_pts)
-
+        self.debug_pub.publish(self.bridge.cv2_to_imgmsg(object_rgb_warpped))
         # self.selection_manager.update_image(objects_warped, object_rgb_warpped)
-        self.detect_object(objects_warped)
+        objects = self.detect_object(objects_warped)
+        self.object_tracker_manager.update(objects)
         # earpprd depth image for fingertip detection
         depth_warped = four_point_transform(skin, self.ref_pts)
         points = self.detect_fingertip(depth_warped)
-        self.tracker_manager.update(points)
+        self.touch_tracker_manager.update(points)
 
-        # print(self.tracker_manager.make_msg())
-        self.finger_pub.publish(self.tracker_manager.make_msg())
+        # print(self.touch_tracker_manager.make_msg())
+        self.finger_pub.publish(self.touch_tracker_manager.make_msg())
 
 
     def rgb_callback(self, data):
@@ -232,9 +239,9 @@ class TangibleSurface:
                 debug_img.astype(np.uint8)[:, :, np.newaxis], cv2.COLOR_GRAY2BGR)
             # obj_debug_img = dst.copy()
             for i, cnt in enumerate(hand_candidate_contours[0:2]):
-                p_new = self.detections[i].update(cnt, dst, debug_img)
+                p_new = self.touch_detections[i].update(cnt, dst, debug_img)
                 p = merge_list(p, p_new)
-                debug_img = self.detections[i].debug_img
+                debug_img = self.touch_detections[i].debug_img
             if len(p) != 0: 
                 rospy.loginfo('touch points: ' + repr(p))
             self.skin_pub.publish(self.bridge.cv2_to_imgmsg(debug_img))
@@ -243,6 +250,7 @@ class TangibleSurface:
         return p
     
     def detect_object(self, img):
+        objects = []
         threshed = my_threshold(img, 15, 150)
         mask = np.zeros(img.shape, dtype=np.uint8)
         mask[threshed > 0] = 255
@@ -260,7 +268,7 @@ class TangibleSurface:
             debug_img = self.selection_manager.draw(debug_img)
             debug_img = self.object_detector.draw_selections(debug_img, self.selection_manager.get_rects())
             self.obj_pub.publish(self.bridge.cv2_to_imgmsg(debug_img))
-        return 
+        return objects
 
 
 def main(args):
