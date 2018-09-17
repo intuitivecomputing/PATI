@@ -25,6 +25,9 @@ class GraspDataClass:
         cv2.line(debug_img, pt1, pt2, color, 5)
         return debug_img
 
+    def __repr__(self):
+        return repr(self.position)
+
 class ObjectManager:
     def __init__(self, debug = True):
         self.init()
@@ -158,7 +161,7 @@ class ObjectDetection:
         self.object_height = max_val  
         # print(min_val, min_loc, max_val, max_loc)
         self.grasp_data = GraspDataClass(self.center_of_mass, self.euclidean_dist(box[0], box[2]), rect[2], self.object_height) # center, diameter, angle, height
-        # print(self.grasp_data)
+        print(self.grasp_data)
         return self.grasp_data
 
 

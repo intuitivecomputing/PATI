@@ -17,5 +17,5 @@
 
 
 
-    <node pkg="rviz" type="rviz" output="log" name="rviz" args="-d $(find ropi_tangible_surface)/rviz/visualization.rviz" />
+    <!-- <node pkg="rviz" type="rviz" output="log" name="rviz" args="-d $(find ropi_tangible_surface)/rviz/visualization.rviz" /> -->
 </launch>
