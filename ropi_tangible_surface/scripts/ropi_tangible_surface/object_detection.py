@@ -8,6 +8,7 @@ import tf
 class GraspDataClass:
     def __init__(self, position, diameter, angle, height):
         self.position = np.asarray(position)
+        self.target_position = None
         self.diameter = diameter
         self.angle = angle
         self.height = height

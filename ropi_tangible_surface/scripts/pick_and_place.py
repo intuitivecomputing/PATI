@@ -152,12 +152,22 @@ class PickNPlace(object):
     def pick_and_place(self, pt1, pt2, object_height):
         traj = self.generate_trajectory(pt1, pt2, object_height)
         self.move_traj(traj[:2])
-        print("grasp")
+        rospy.loginfo(("grasp")
         self.close_gripper()
         self.move_traj(traj[2:])
-        print("release")
+        rospy.loginfo(("release")
         self.open_gripper()
-        print('home')
+        # self.move_joints(self.INIT_POS)
+
+    def pick_and_place_mission(self, mission):
+        # mission: GraspDataClass[]
+        for i, m in enumerate(mission): 
+            rospy.loginfo('Executing mission #{}'.format(i))
+            if m.target_position is not None:
+                self.pick_and_place(m.position, m.target_position, m.height)
+            else:
+                rospy.logerr('No target set for mission #{}'.format(i))
+
         self.move_joints(self.INIT_POS)
 
     def generate_trajectory(self, pick_pt, place_pt, object_height):
