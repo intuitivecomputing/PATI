@@ -93,8 +93,8 @@ class TangibleSurface:
         grasp_points = self.detect_objects_in_region(req.source_selection)
         # if there are objects in the region
         if len(grasp_points) > 0:
-            self.selection_manager.update([req.to_selection])
-            to_region = self.selection_manager.selections.get(req.to_selection.guid)
+            self.selection_manager.update([req.target_selection])
+            to_region = self.selection_manager.selections.get(req.target_selection.guid)
 
     def delete_selection_callback(self, req):
         rospy.loginfo("Delete selection service called.")
