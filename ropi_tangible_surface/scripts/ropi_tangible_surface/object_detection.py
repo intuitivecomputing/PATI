@@ -162,7 +162,7 @@ class ObjectDetection:
         self.object_height = max_val  
         # print(min_val, min_loc, max_val, max_loc)
         self.grasp_data = GraspDataClass(self.center_of_mass, self.euclidean_dist(box[0], box[2]), rect[2], self.object_height) # center, diameter, angle, height
-        print(self.grasp_data)
+        # print(self.grasp_data)
         return self.grasp_data
 
 

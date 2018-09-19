@@ -3,6 +3,8 @@
     <include file="$(find ropi_tangible_surface)/launch/sensor_launch.launch" />
     <include file="$(find ropi_tangible_surface)/launch/connection.launch" />
     <!-- <node pkg="tf" type="static_transform_publisher" name="table1_broadcaster" args="0.5305745642185211, -0.6272513246536255, 1.3256145696640015 0 0 0 /kinect2_link /table_origin11 100" /> -->
+    <include file="$(find icl_phri_ur5_gripper_bringup)/launch/ur5_with_gripper.launch" />
+    
     <node pkg="tf" type="static_transform_publisher" name="fixed_broadcaster" args="0 0 0 0 0 0  /base_link /fixed_link 100" />
     <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0.3 0.76 0.15 0 0 0 /table_origin /base_link 100" />
     <node pkg="tf" type="static_transform_publisher" name="link3_broadcaster" args="0 0 0 0.078 -0.02 0 /table_origin /table_origin2 100" />
@@ -15,7 +17,5 @@
     <node pkg="tf" type="static_transform_publisher" name="r_knucle_broadcaster" args="0 0 0 0 0 0 /robotiq_arg2f_base_link /right_outer_knuckle 100" />
     <node pkg="tf" type="static_transform_publisher" name="r_iknucle_broadcaster" args="0 0 0 0 0 0 /robotiq_arg2f_base_link /right_inner_knuckle 100" />
     <node pkg="tf" type="static_transform_publisher" name="r_finger_broadcaster" args="0 0 0 0 0 0 /right_outer_finger /right_inner_finger 100" /> -->
-    <include file="$(find icl_phri_ur5_gripper_bringup)/launch/ur5_with_gripper.launch">
-        
-    </include>
+    
 </launch>
