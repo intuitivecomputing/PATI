@@ -68,9 +68,9 @@ class PickNPlace(object):
         self.goal = FollowJointTrajectoryGoal()
         self.goal.trajectory = JointTrajectory()
         self.goal.trajectory.joint_names = self.JOINT_NAMES
-        print ("Waiting for server...")
+        print("Waiting for server...")
         self.client.wait_for_server()
-        print ("Connected to server")
+        print("Connected to server")
         joint_states = rospy.wait_for_message("joint_states", JointState)
         print(joint_states)
         joint_states = list(deepcopy(joint_states).position)
@@ -82,7 +82,7 @@ class PickNPlace(object):
         self.ik.setJointWeights(joint_weights)
         self.ik.setJointLimits(-math.pi, math.pi)
         # self.sub = rospy.Subscriber('/target_position', Int32MultiArray, self.pickplace_cb)
-        print ("Init done")
+        print("Init done")
 
     def move_joints(self, joints, duration=3.0):
         if joints is not None and not self.cancel:
@@ -161,7 +161,7 @@ class PickNPlace(object):
 
     def pick_and_place_mission(self, mission):
         # mission: GraspDataClass[]
-        for i, m in enumerate(mission): 
+        for i, m in enumerate(mission):
             rospy.loginfo('Executing mission #{}'.format(i))
             if m.target_position is not None:
                 self.pick_and_place(m.position, m.target_position, m.height)
@@ -169,6 +169,19 @@ class PickNPlace(object):
                 rospy.logerr('No target set for mission #{}'.format(i))
 
         self.move_joints(self.INIT_POS)
+
+    def mission_from_regions(self, source_region, target_region):
+        grasp_points = self.detect_objects_in_region(source_region)
+        if len(grasp_points) > 0:
+            self.selection_manager.update([target_region])
+            target = self.selection_manager.selections.get(target_region.guid)
+            source = self.selection_manager.selections.get(source_region.guid)
+
+            movement = target.normalized_rect.center - source.normalized_rect.center
+            mission = [g.target_position = g.position + movement for g in grasp_points]
+            return mission
+        else:
+            return None
 
     def generate_trajectory(self, pick_pt, place_pt, object_height):
         pick_coord = self.coord_converter(pick_pt)

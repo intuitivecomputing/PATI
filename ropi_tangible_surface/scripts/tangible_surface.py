@@ -90,11 +90,20 @@ class TangibleSurface:
     def move_objects_callback(self, req):
         # TODO: finish this
         rospy.loginfo("move objects service called.")
-        grasp_points = self.detect_objects_in_region(req.source_selection)
+        response = MoveObjectsResponse()
+        mission = self.robot_interface.mission_from_regions(req.source_selection, req.target_selection)
         # if there are objects in the region
-        if len(grasp_points) > 0:
-            self.selection_manager.update([req.target_selection])
-            to_region = self.selection_manager.selections.get(req.target_selection.guid)
+        if mission is not None:
+            response.success = True
+            response.message = '{} source objects detected.'.format(len(mission))
+            rospy.loginfo('mission generated, executing mission.')
+            self.robot_interface.pick_and_place_mission(mission)
+        else:
+            response.success = False
+            response.message = 'No source objects detected.'
+
+        return response
+
 
     def delete_selection_callback(self, req):
         rospy.loginfo("Delete selection service called.")
