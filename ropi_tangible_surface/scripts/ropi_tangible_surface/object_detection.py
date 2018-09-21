@@ -9,8 +9,8 @@ class GraspDataClass:
     def __init__(self, position, diameter, angle, height):
         self.position = np.asarray(position)
         self.target_position = None
-        self.diameter = diameter
-        self.angle = angle
+        self.diameter = diameter / 1000
+        self.angle = 90 + angle
         self.height = height
     
     def get_points(self):
@@ -27,7 +27,7 @@ class GraspDataClass:
         return debug_img
 
     def __repr__(self):
-        return '[GraspDataClass]: {}-{}-{}'.format(self.position, self.target_position, self.height)
+        return '[GraspDataClass]: {}-{}-|Height: {}|Angle: {} |Diameter: {}'.format(self.position, self.target_position, self.height,self.angle, self.diameter)
         # return repr(self.position)
 
 class ObjectManager:

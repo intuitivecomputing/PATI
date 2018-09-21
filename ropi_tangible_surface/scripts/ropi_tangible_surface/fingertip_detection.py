@@ -117,7 +117,7 @@ class FingertipDetection:
             if tip_window.size > 0:
                 tip_depth = tip_window.max()
                 if self.debug:
-                    print('depth: ', tip_depth)
+                    # print('depth: ', tip_depth)
                     cv2.rectangle(
                         self.debug_img,
                         tuple(
@@ -127,7 +127,7 @@ class FingertipDetection:
                             np.array(tip) +
                             np.array([self.window_size, self.window_size])),
                         (255, 200, 200), 1)
-                if tip_depth < 25 and tip_depth > 0:
+                if tip_depth < 25:# and tip_depth > 0:
                     if self.debug:
                         cv2.circle(self.debug_img, tip, 5, [100, 0, 255], -1)
                     touch_points.append(tip)

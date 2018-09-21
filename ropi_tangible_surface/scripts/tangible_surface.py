@@ -5,6 +5,7 @@ import copy
 import cv2
 
 import rospy
+import tf
 import rospkg
 import message_filters
 from sensor_msgs.msg import Image, CameraInfo
@@ -57,6 +58,7 @@ class TangibleSurface:
         self.selection_manager = SelectionManager(self.resolution)
 
         self.robot_interface = PickNPlace()
+        
 
         # publish amd subscribe
         self.finger_pub = rospy.Publisher("touch", MultiTouch, queue_size=50)
@@ -97,7 +99,13 @@ class TangibleSurface:
             response.success = True
             response.message = '{} source objects detected.'.format(len(mission))
             rospy.loginfo('mission generated, executing mission.')
-            self.robot_interface.pick_and_place_mission(mission)
+            try:
+                self.robot_interface.pick_and_place_mission(mission)
+            except:
+                rospy.logerr('mission failed.')
+                response.success = False
+                response.message = 'mission failed'
+                return response
         else:
             response.success = False
             response.message = 'No source objects detected.'
