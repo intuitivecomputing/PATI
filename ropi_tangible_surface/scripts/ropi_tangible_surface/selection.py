@@ -143,7 +143,7 @@ class NormalizedRect:
         """ A normalized rect
         """
         self.res = res
-        self.center = np.array(center)
+        # self.center = np.array(center)
         self.width = width
         self.height = height
         self.resolution = res
@@ -151,6 +151,8 @@ class NormalizedRect:
         self.xmax = 1 - np.clip(center[0] - width / 2, 0, 1)
         self.ymin = np.clip(center[1] - height / 2 , 0, 1)
         self.ymax = np.clip(center[1] + height / 2, 0, 1)
+        self.center = np.array([(self.xmin + self.xmax) / 2, (self.ymin + self.ymax) / 2])
+        self.diameter = np.sqrt((self.xmax - self.xmin)**2 + (self.ymax - self.ymin)**2)
         # self.aspect_ratio = self.resolution[0] / self.resolution[1]
         # self.xmin = np.clip(center[0] - width, 0, 1)
         # self.xmax = np.clip(center[0] + width, 0, 1)
@@ -186,6 +188,11 @@ class NormalizedRect:
     def get_bound(self):
         return self.xmin, self.xmax, self.ymin, self.ymax
 
+    # def get_center(self):
+    #     return self.center * self.resolution
+    def get_center(self):
+        return self.center * self.resolution
+        
     def get_real_bound(self):
         return (int)(self.xmin * self.res[0]), (int)(self.xmax * self.res[0]), (int)(self.ymin * self.res[1]), (int)(self.ymax * self.res[1])
 
@@ -228,6 +235,7 @@ class Selection(TrackerBase):
         debug_log(self.normalized_rect.xmin, self.normalized_rect.xmax, self.normalized_rect.ymin, self.normalized_rect.ymax)
         debug_img = img.copy()
         cv2.rectangle(debug_img, (x1, y1), (x2, y2), (255,0,0), 2)
+        cv2.circle(debug_img, tuple(np.int0(self.normalized_rect.get_center())), 5, (255, 0, 0) ,3)
         return debug_img
 
 

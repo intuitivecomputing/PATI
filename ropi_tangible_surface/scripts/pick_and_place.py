@@ -19,13 +19,14 @@ from geometry_msgs.msg import WrenchStamped, Vector3
 
 from icl_phri_robotiq_control.robotiq_utils import RobotiqActionClient
 from inverseKinematicsUR5 import InverseKinematicsUR5, transformRobotParameter
+# ee:/tool0 base:/base
 
 
 class PickNPlace(object):
     JOINT_NAMES = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint',
                    'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
-    INIT_POS = np.asarray([-0.00988322893251592, -1.1638777891742151, 1.1179766654968262, -
-                           1.4695408979998987, -1.600640122090475, -0.0019872824298303726])  # , 0.2823529411764706]
+    INIT_JOINTS = np.asarray([-0.00988322893251592, -1.1638777891742151, 1.1179766654968262, -
+                              1.4695408979998987, -1.600640122090475, -0.0019872824298303726])  # , 0.2823529411764706]
     SPEED = 3.0
 
     def __init__(self):
@@ -41,6 +42,15 @@ class PickNPlace(object):
         pts1 = np.array([[83, 70], [81, 186], [80, 309], [251, 330], [261, 217], [268, 77], [
                         485, 81], [480, 210], [495, 337], [691, 349], [722, 199], [733, 49]])
         self.M, mask = cv2.findHomography(pts1, pts2, cv2.RANSAC, 5.0)
+
+    def lookup_pos(self):
+        try:
+            (trans, rot) = self.listener.lookupTransform(
+                '/base', '/tool0', rospy.Time(0))
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            rospy.logerr('Lookup Transform failed!!!')
+            return [0, 0, 0], None
+        return trans, rot
 
     def coord_converter(self, pt):
         solution = np.matmul(self.M, np.array([pt[0], pt[1], 1]))
@@ -62,7 +72,13 @@ class PickNPlace(object):
         self.gripper_ac.send_goal(0.1)
         self.gripper_ac.wait_for_result()
 
+    def send_script(self, script):
+        rospy.loginfo('sending script: {}'.format(script))
+        self.script_pub.publish(String(script))
+
     def init_ur5(self, topic):
+        self.script_pub = rospy.Publisher(
+            "/icl_phri_ur5/ur_driver/URScript", String, queue_size=1)
         self.client = actionlib.SimpleActionClient(
             topic, FollowJointTrajectoryAction)
         self.goal = FollowJointTrajectoryGoal()
@@ -76,11 +92,22 @@ class PickNPlace(object):
         joint_states = list(deepcopy(joint_states).position)
         del joint_states[-1]
         self.joints_pos_start = np.array(joint_states)
-        self.move_joints(self.INIT_POS, self.SPEED * 2)
         joint_weights = [12, 5, 4, 3, 2, 1]
         self.ik = InverseKinematicsUR5()
         self.ik.setJointWeights(joint_weights)
         self.ik.setJointLimits(-math.pi, math.pi)
+        trans, rot = self.lookup_pos()
+        initial_pos = [-0.651, -0.100, 0.410]
+        # self.send_script('movel([0, 0, 0.3, 0, 0, 0], a=0.1, v=0.1)')
+        if np.linalg.norm(np.asarray(initial_pos) - trans) > 0.02:
+            try:
+                trans[2] = initial_pos[2]
+                self.move(self.define_grasp(trans))
+                self.move_joints(self.INIT_JOINTS, self.SPEED * 2)
+            except:
+                rospy.logerr('init failed, fall back')
+                self.move_joints(self.INIT_JOINTS, self.SPEED * 2)
+
         # self.sub = rospy.Subscriber('/target_position', Int32MultiArray, self.pickplace_cb)
         print("Init done")
 
@@ -114,7 +141,7 @@ class PickNPlace(object):
             for i, joints in enumerate(traj):
                 self.goal.trajectory.points.append(JointTrajectoryPoint(positions=joints.tolist(), velocities=[
                     0]*6, time_from_start=rospy.Duration((i + 1) * duration)))
-            # self.goal.trajectory.points.append(JointTrajectoryPoint(positions=self.INIT_POS.tolist(), velocities=[
+            # self.goal.trajectory.points.append(JointTrajectoryPoint(positions=self.INIT_JOINTS.tolist(), velocities=[
             #         0]*6, time_from_start=rospy.Duration((len(traj) + 1) * duration)))
             try:
                 self.client.send_goal(self.goal)
@@ -151,49 +178,46 @@ class PickNPlace(object):
 
     def pick_and_place(self, pt1, pt2, object_height):
         traj = self.generate_trajectory(pt1, pt2, object_height)
+        print('traj: {}'.format(traj))
         self.move_traj(traj[:2])
         rospy.loginfo("grasp")
         self.close_gripper()
-        self.move_traj(traj[2:])
+        self.move_traj(traj[2:-1])
         rospy.loginfo("release")
         self.open_gripper()
-        # self.move_joints(self.INIT_POS)
+        self.move_traj([traj[-1]])
+        # self.move_joints(self.INIT_JOINTS)
 
     def pick_and_place_mission(self, mission):
         # mission: GraspDataClass[]
+        print('ppmis: {}'.format(mission))
         for i, m in enumerate(mission):
             rospy.loginfo('Executing mission #{}'.format(i))
             if m.target_position is not None:
-                self.pick_and_place(m.position, m.target_position, m.height)
+                print(m.position, m.target_position, m.height)
+                try:
+                    self.pick_and_place(np.asarray(m.position), np.asarray(
+                        m.target_position), m.height)
+                except:
+                    rospy.logerr('mission #{} failed!!!'.format(i))
+                    self.move_joints(self.INIT_JOINTS)
             else:
                 rospy.logerr('No target set for mission #{}'.format(i))
 
-        self.move_joints(self.INIT_POS)
-
-    def mission_from_regions(self, source_region, target_region):
-        grasp_points = self.detect_objects_in_region(source_region)
-        if len(grasp_points) > 0:
-            self.selection_manager.update([target_region])
-            target = self.selection_manager.selections.get(target_region.guid)
-            source = self.selection_manager.selections.get(source_region.guid)
-
-            movement = target.normalized_rect.center - source.normalized_rect.center
-            mission = [g.target_position = g.position + movement for g in grasp_points]
-            return mission
-        else:
-            return None
+        self.move_joints(self.INIT_JOINTS)
 
     def generate_trajectory(self, pick_pt, place_pt, object_height):
         pick_coord = self.coord_converter(pick_pt)
         place_coord = self.coord_converter(place_pt)
+        print(pick_coord)
         pick_coord = np.array(
             [pick_coord[0], pick_coord[1], self.gripper_offset + object_height * 0.3])
         place_coord = np.array(
             [place_coord[0], place_coord[1], self.gripper_offset + object_height * 0.3])
         traj = [pick_coord + [0, 0, object_height + self.pick_offset], pick_coord, pick_coord + [0, 0, self.pick_offset],
-                place_coord + [0, 0, self.pick_offset], place_coord]
+                place_coord + [0, 0, self.pick_offset], place_coord, place_coord + [0, 0, object_height + self.pick_offset]]
         traj_defined = map(lambda x: self.define_grasp(x), traj)
-        # print(traj[0].shape)
+        print(traj)
         # print(list(traj_defined)[0].shape)
         joint_traj = self.find_ik(traj_defined)
         return joint_traj

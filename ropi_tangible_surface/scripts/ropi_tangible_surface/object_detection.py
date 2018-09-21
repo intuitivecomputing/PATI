@@ -27,7 +27,8 @@ class GraspDataClass:
         return debug_img
 
     def __repr__(self):
-        return repr(self.position)
+        return '[GraspDataClass]: {}-{}-{}'.format(self.position, self.target_position, self.height)
+        # return repr(self.position)
 
 class ObjectManager:
     def __init__(self, debug = True):
@@ -159,7 +160,8 @@ class ObjectDetection:
         
         mask = self.get_mask()
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(self.depth_img, mask = mask)  
-        self.object_height = max_val  
+        # from mm to m
+        self.object_height = max_val / 1000
         # print(min_val, min_loc, max_val, max_loc)
         self.grasp_data = GraspDataClass(self.center_of_mass, self.euclidean_dist(box[0], box[2]), rect[2], self.object_height) # center, diameter, angle, height
         # print(self.grasp_data)

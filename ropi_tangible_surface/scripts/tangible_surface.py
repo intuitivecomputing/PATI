@@ -91,7 +91,7 @@ class TangibleSurface:
         # TODO: finish this
         rospy.loginfo("move objects service called.")
         response = MoveObjectsResponse()
-        mission = self.robot_interface.mission_from_regions(req.source_selection, req.target_selection)
+        mission = self.mission_from_regions(req.source_selection, req.target_selection)
         # if there are objects in the region
         if mission is not None:
             response.success = True
@@ -104,6 +104,32 @@ class TangibleSurface:
 
         return response
 
+    def place_position(self, pick_pos, source, target):
+        relative_pos = np.asarray(pick_pos) - source.normalized_rect.get_center()
+        scale = target.normalized_rect.diameter / source.normalized_rect.diameter
+        if scale > 1:
+            relative_pos = relative_pos * scale
+        return target.normalized_rect.get_center() + relative_pos
+
+    def mission_from_regions(self, source_region, target_region):
+        print('Source: ', source_region)
+        print('Target: ', target_region)
+        grasp_points = self.detect_objects_in_region(source_region)
+        print('Obj: ', grasp_points)
+        if len(grasp_points) > 0:
+            self.selection_manager.update([target_region])
+            target = self.selection_manager.selections.get(target_region.guid)
+            source = self.selection_manager.selections.get(source_region.guid)
+            # print('centes: ', source.normalized_rect.get_center())
+            # print('centes: ', target.normalized_rect.get_center())
+            # movement = target.normalized_rect.get_center() - source.normalized_rect.get_center()
+            # print('Displacement: {}'.format(movement))
+            for g in grasp_points:
+                g.target_position = np.int0(self.place_position(g.position, source, target))
+            print('Mission: {}'.format(grasp_points))
+            return grasp_points
+        else:
+            return None
 
     def delete_selection_callback(self, req):
         rospy.loginfo("Delete selection service called.")
@@ -118,10 +144,7 @@ class TangibleSurface:
     def region_selection_callback(self, req):
         rospy.loginfo("Region selection service called.")
         grasp_points = self.detect_objects_in_region(req)
-        # self.selection_manager.update([req])
-        # region = self.selection_manager.selections.get(req.guid)
-        # rect = region.normalized_rect
-        # grasp_points = self.object_detector.get_grasp_selected(rect)
+
         response = RegionSelectionResponse()
         rospy.loginfo('Contructing response.')
         response.success = (len(grasp_points) > 0)
