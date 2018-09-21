@@ -5,6 +5,9 @@ import rospy
 import cv2
 import tf
 
+from ropi_msgs.msg import GraspData
+from geometry_msgs.msg import Point
+
 class GraspDataClass:
     def __init__(self, position, diameter, angle, height):
         self.position = np.asarray(position)
@@ -25,6 +28,15 @@ class GraspDataClass:
         # print (pt1, pt2)
         cv2.line(debug_img, pt1, pt2, color, 5)
         return debug_img
+
+    def make_msg(self):
+        msg = GraspData()
+        msg.position = Point(self.position[0], self.position[1], self.height)
+        if self.target_position is not None:
+            msg.target_position = Point(self.target_position[0], self.target_position[1], self.height)
+        msg.diameter = self.diameter
+        msg.height = self.height
+        msg.angle = self.angle
 
     def __repr__(self):
         return '[GraspDataClass]: {}-{}-|Height: {}|Angle: {} |Diameter: {}'.format(self.position, self.target_position, self.height,self.angle, self.diameter)

@@ -2,6 +2,5 @@ ropi_msgs/RegionSelectionMsg source_selection
 ropi_msgs/RegionSelectionMsg target_selection
 ---
 bool success
-ropi_msgs/GraspData[] pick_data
-ropi_msgs/GraspData[] place_data
+ropi_msgs/GraspData[] object_data
 string message

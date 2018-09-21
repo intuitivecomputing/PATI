@@ -193,7 +193,7 @@ class PickNPlace(object):
                 self.joints_pos_start = joints
                 rospy.loginfo('[move_joints] Result: {}'.format(self.client.wait_for_result()))
                 finish_state = self.client.get_state()
-                if (not finish_state == UR_STATES['ACTIVE'] or not finish_state == UR_STATES['SUCCEEDED']):
+                if (not finish_state == UR_STATES['ACTIVE'] and not finish_state == UR_STATES['SUCCEEDED']):
                     raise UR5MissionError(finish_state, inspect.stack()[0][3])
             except KeyboardInterrupt:
                 self.client.cancel_goal()
@@ -223,7 +223,7 @@ class PickNPlace(object):
                 # self.client.wait_for_result()
                 rospy.loginfo('[move_traj] Result: {}'.format(self.client.wait_for_result()))
                 finish_state = self.client.get_state()
-                if (not finish_state == UR_STATES['ACTIVE'] or finish_state == UR_STATES['SUCCEEDED']):
+                if (not finish_state == UR_STATES['ACTIVE'] and not finish_state == UR_STATES['SUCCEEDED']):
                     raise UR5MissionError(finish_state, inspect.stack()[0][3])
             except KeyboardInterrupt:
                 self.client.cancel_goal()
@@ -259,7 +259,7 @@ class PickNPlace(object):
     # pt: [[x,y], angle]
     def pick_and_place(self, pt1, pt2, object_height, object_diameter=0.14):
         try:
-            self.gripper_sc.move_to(np.clip(object_diameter + 0.02, 0, 0.14))
+            self.gripper_sc.move_to(np.clip(object_diameter + 0.05, 0, 0.14))
             traj = self.generate_trajectory(pt1, pt2, object_height)
             # print('traj: {}'.format(traj))
             self.move_traj(traj[:2])

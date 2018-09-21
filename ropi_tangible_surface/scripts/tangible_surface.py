@@ -81,6 +81,7 @@ class TangibleSurface:
             'delete_selection', DeleteSelection, self.delete_selection_callback)
         self.move_server = rospy.Service(
             'move_objects', MoveObjects, self.move_objects_callback)
+        self.grasp_pub = rospy.Publisher('grasp_data', GraspData, queue_size=1)
 
     def detect_objects_in_region(self, msg):
         self.selection_manager.update([msg])
@@ -99,6 +100,8 @@ class TangibleSurface:
             response.success = True
             response.message = '{} source objects detected.'.format(len(mission))
             rospy.loginfo('mission generated, executing mission.')
+            # response.object_data = [x.make_msg() for x in mission]
+            # self.grasp_pub.publish([x.make_msg() for x in mission])
             try:
                 self.robot_interface.pick_and_place_mission(mission)
             except:
@@ -161,9 +164,9 @@ class TangibleSurface:
             grasp_data = []
             for gp in grasp_points:
                 grasp_datum = GraspData()
-                grasp_datum.center.x = gp.center[0]
-                grasp_datum.center.y = gp.center[1]
-                grasp_datum.radius = gp.radius
+                grasp_datum.position.x = gp.position[0]
+                grasp_datum.position.y = gp.position[1]
+                grasp_datum.diameter = gp.diameter 
                 grasp_datum.angle = gp.angle
                 grasp_datum.height = gp.height
                 grasp_data.append(grasp_datum)
@@ -294,7 +297,7 @@ class TangibleSurface:
     
     def detect_object(self, img):
         objects = []
-        threshed = my_threshold(img, 15, 150)
+        threshed = my_threshold(img, 5, 150)
         mask = np.zeros(img.shape, dtype=np.uint8)
         mask[threshed > 0] = 255
         dst = img.copy()
@@ -304,7 +307,8 @@ class TangibleSurface:
         merge_list = lambda l1, l2: l2 if not l1 else (l1 if not l2 else np.concatenate((l1, l2)))
         object_contours = []
         if len(contours) != 0:
-            contours = filter(lambda c: cv2.contourArea(c) > 400 and cv2.contourArea(c) < 1500, contours)
+            # print([cv2.contourArea(c) for c in contours])
+            contours = filter(lambda c: cv2.contourArea(c) > 400 and cv2.contourArea(c) < 3000, contours)
             debug_img = dst.copy()
             objects = self.object_detector.update(contours, dst, debug_img)
             debug_img = self.object_detector.debug_img

@@ -1,4 +1,5 @@
-geometry_msgs/Point center
-float32 radius
+geometry_msgs/Point position
+geometry_msgs/Point target_position
+float32 diameter
 float32 angle
 float32 height
