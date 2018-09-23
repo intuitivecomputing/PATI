@@ -25,10 +25,10 @@ from inverseKinematicsUR5 import InverseKinematicsUR5, transformRobotParameter
 from ropi_msgs.srv import GripperControl
 
 
-def rad2deg(r): return r / math.pi * 180
+def rad2deg(r): return (r / math.pi * 180.)
 
 
-def deg2rad(d): return d / 180 * math.pi
+def deg2rad(d): return (d / 180. * math.pi)
 
 
 class GripperServiceClient(object):
@@ -98,10 +98,12 @@ class PickNPlace(object):
         self.init_gripper_service('/gripper_control')
         # self.init_gripper('icl_phri_gripper/gripper_controller')
         self.init_ur5('icl_phri_ur5/follow_joint_trajectory')
-        pts2 = np.array([[[-0.633, 0.565], [-0.702, 0.433], [-0.662, 0.284], [-0.456, 0.266], [-0.427, 0.399], [-0.410,
-                                                                                                                0.588], [-0.135, 0.592], [-0.159, 0.421], [-0.115, 0.256], [0.156, 0.230], [0.172, 0.430], [0.195, 0.626]]])
-        pts1 = np.array([[83, 70], [81, 186], [80, 309], [251, 330], [261, 217], [268, 77], [
-                        485, 81], [480, 210], [495, 337], [691, 349], [722, 199], [733, 49]])
+        # pts2 = np.array([[[-0.633, 0.565], [-0.702, 0.433], [-0.662, 0.284], [-0.456, 0.266], [-0.427, 0.399], [-0.410,
+        #                                                                                                         0.588], [-0.135, 0.592], [-0.159, 0.421], [-0.115, 0.256], [0.156, 0.230], [0.172, 0.430], [0.195, 0.626]]])
+        # pts1 = np.array([[83, 70], [81, 186], [80, 309], [251, 330], [261, 217], [268, 77], [
+        #                 485, 81], [480, 210], [495, 337], [691, 349], [722, 199], [733, 49]])
+        pts1 = np.array([[76, 374], [78, 284], [81, 165], [73, 47], [239, 41], [244, 137], [254, 262], [273, 389], [414, 390], [410, 279], [414, 152], [414, 35], [570, 28], [574, 152], [583, 280], [589, 386], [753, 397], [748, 290], [750, 158], [761, 33], [119, 324], [127, 235], [127, 125], [129, 40], [265, 44], [270, 131], [276, 251], [281, 339], [402, 338], [410, 251], [421, 136], [424, 37], [557, 42], [549, 158], [556, 265], [549, 352], [689, 355], [695, 260]])
+        pts2 = np.array([[[-0.612, 0.198], [-0.620, 0.320], [-0.634, 0.479], [-0.635, 0.640], [-0.421, 0.647], [-0.412, 0.511], [-0.399, 0.334], [-0.344, 0.176], [-0.166, 0.171], [-0.171, 0.323], [-0.166, 0.495], [-0.168, 0.666], [0.049, 0.667], [0.051, 0.499], [0.058, 0.324],  [0.062, 0.184], [0.291, 0.175], [0.291, 0.312], [0.288, 0.482], [0.310, 0.653], [-0.550, 0.269], [-0.550, 0.399], [-0.548, 0.543], [-0.544, 0.660], [-0.365, 0.660], [-0.374, 0.533], [-0.363, 0.386], [-0.349, 0.259], [-0.192, 0.250], [-0.179, 0.368], [-0.164, 0.515], [-0.151, 0.671], [0.034, 0.668], [0.009, 0.500], [0.014, 0.361], [0.020, 0.247], [0.204, 0.233], [0.218, 0.354]]])
         self.M, mask = cv2.findHomography(pts1, pts2, cv2.RANSAC, 5.0)
 
     def lookup_pos(self):
@@ -238,6 +240,7 @@ class PickNPlace(object):
             rospy.logwarn("this goal canceled")
 
     def define_grasp(self, position, angle=0):
+        print('amgle ', angle)
         quat = tf.transformations.quaternion_from_euler(math.pi, 0, deg2rad(angle)) #(math.pi, 0, 0)
         dest_m = self.transformer.fromTranslationRotation(position, quat)
         return dest_m
@@ -319,5 +322,8 @@ class PickNPlace(object):
 if __name__ == '__main__':
     rospy.init_node('test', anonymous=True)
     task = PickNPlace()
-    task.pick_and_place((412, 211), (89, 196), 0.15)
+    # task.pick_and_place((412, 211), (89, 196), 0.15)
+    pos = task.define_grasp([-0.651, -0.103, 0.410], angle = 20)
+    print('defgrasp: ', pos)
+    task.move(pos)
     rospy.spin()
