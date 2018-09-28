@@ -39,6 +39,7 @@ class TangibleSurface:
         self.use_skin_color_filter = use_skin_color_filter
         self.load_data()
         self.on_init()
+        # self.ur5_init()
 
     def load_data(self):
         self.root_path = rospkg.RosPack().get_path('ropi_tangible_surface')
@@ -56,9 +57,6 @@ class TangibleSurface:
         self.object_tracker_manager = ObjectTrackerManager(self.resolution)
         
         self.selection_manager = SelectionManager(self.resolution)
-
-        self.robot_interface = PickNPlace()
-        
 
         # publish amd subscribe
         self.finger_pub = rospy.Publisher("touch", MultiTouch, queue_size=50)
@@ -82,6 +80,9 @@ class TangibleSurface:
         self.move_server = rospy.Service(
             'move_objects', MoveObjects, self.move_objects_callback)
         self.grasp_pub = rospy.Publisher('grasp_data', GraspData, queue_size=1)
+
+    def ur5_init(self):
+        self.robot_interface = PickNPlace()
 
     def detect_objects_in_region(self, msg):
         self.selection_manager.update([msg])
@@ -177,6 +178,7 @@ class TangibleSurface:
         cv_rgb = self.rgb_callback(rgb_in)
         cv_depth = self.depth_callback(depth_in)
         depth_foreground = self.depth_background - cv_depth
+        # depth_foreground = self.filter(depth_foreground, size=3)
         depth_foreground[depth_foreground < 5] = 0
         # mask = my_threshold(depth_foreground, 50, 300))
         if (self.use_skin_color_filter):
@@ -235,10 +237,10 @@ class TangibleSurface:
         except CvBridgeError as e:
             print(e)
 
-    def filter(self, mask):
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-        mask = cv2.erode(mask, kernel, iterations=1)
-        mask = cv2.dilate(mask, kernel, iterations=1)
+    def filter(self, mask, size=3):
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (size, size))
+        mask = cv2.erode(mask, kernel, iterations=2)
+        mask = cv2.dilate(mask, kernel, iterations=2)
         mask = cv2.GaussianBlur(mask, (3, 3), 0)
         return mask
 
@@ -274,7 +276,7 @@ class TangibleSurface:
                 contours, key=lambda cnt: cv2.contourArea(cnt), reverse=True))
             # filter out objects (hands' contour has nodes at edge)
             hand_candidate_contours = list(
-                filter(lambda cnt: (True in [x[0][1] < 5 for x in cnt]),
+                filter(lambda cnt: (True in [x[0][1] < 5 for x in cnt] or True in [x[0][0] < 5 for x in cnt]),
                        contours))
             hand_contours = np.asarray(hand_candidate_contours[0:2])
             for cnt in contours:

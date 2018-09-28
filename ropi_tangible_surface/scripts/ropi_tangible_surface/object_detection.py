@@ -171,7 +171,7 @@ class ObjectDetection:
             cv2.line(self.debug_img, self.grasp_points[0], self.grasp_points[1], [0, 0, 255], 2)
         grasp_sorted = sorted([self.grasp_points[0], self.grasp_points[1]], key=lambda x: x[1])
         angle = 180. / np.pi * np.arctan2(grasp_sorted[1][1] - grasp_sorted[0][1], grasp_sorted[0][0] - grasp_sorted[1][0])
-        print(grasp_sorted[1][1] - grasp_sorted[0][1], grasp_sorted[0][0] - grasp_sorted[1][0])
+        # print(grasp_sorted[1][1] - grasp_sorted[0][1], grasp_sorted[0][0] - grasp_sorted[1][0])
         # print(grasp_sorted)
         mask = self.get_mask()
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(self.depth_img, mask = mask)  
@@ -179,7 +179,7 @@ class ObjectDetection:
         self.object_height = max_val / 1000
         # print(min_val, min_loc, max_val, max_loc)
         self.grasp_data = GraspDataClass(self.center_of_mass, self.euclidean_dist(box[0], box[2]), angle, self.object_height) # center, diameter, angle, height
-        print(self.grasp_data)
+        # print(self.grasp_data)
         return self.grasp_data
 
 

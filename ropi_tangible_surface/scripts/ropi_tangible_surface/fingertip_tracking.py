@@ -46,7 +46,7 @@ class IDManager:
 DEBUG = False
 
 class TouchTracker(TrackerBase):
-    def __init__(self, pt):
+    def __init__(self, pt, id=None):
         super(TouchTracker, self).__init__()
         # self.id = id
         self.position = pt
@@ -76,13 +76,13 @@ class TouchTracker(TrackerBase):
             # self.position = pos
             self.state = CursorState['DRAGGED']
         else:
-            if self.release_cnt > 10:
+            if self.release_cnt > 5:
                 self.state = CursorState['RELEASED']
             self.release_cnt += 1
 
     # TODO: write a service for this
     def is_released(self):
-        if self.release_cnt > 15:
+        if self.release_cnt > 10:
             return True
         else:
             return False
@@ -119,8 +119,13 @@ class TouchTrackerManager(TrackingManagerBase):
                 if DEBUG: print('add pt', new_cursor.id.hex)
 
     def match_trackers(self, pts):
+        if len(pts) == 1:
+            move_threshold = 100
+        else:
+            move_threshold = self.move_threshold
+
         dists = [[euclidean_dist(cur.position, pt) for pt in pts] for cur in self.trackers]
-        dists = ma.masked_greater(dists, self.move_threshold)
+        dists = ma.masked_greater(dists, move_threshold)
         unmatched_pts = ma.array(pts)
         processed_curs = []
         while unmatched_pts.compressed().size > 0 and dists.compressed().size > 0:
