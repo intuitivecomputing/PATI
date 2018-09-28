@@ -83,7 +83,7 @@ class TouchTracker(TrackerBase):
         else:
             self.time = rospy.get_time()
             self.interval = self.time - self.last_time
-            print(self.interval)
+            # print(self.interval)
             if self.release_cnt > 5:#or self.interval >= 0.1:
                 self.state = CursorState['RELEASED']
             self.release_cnt += 1

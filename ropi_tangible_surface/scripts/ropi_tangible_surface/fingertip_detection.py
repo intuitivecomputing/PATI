@@ -77,7 +77,7 @@ class FingertipDetection:
             for i in range(self.defects.shape[0] - 1):
                 s, e, f, d = self.defects[i, 0, :]
                 sn, en, fn, dn = self.defects[i + 1, 0, :]
-                if self.depth_img[self.center_of_mass[1], self.center_of_mass[0]] > 30 and (d > 200 or dn > 200):
+                if self.depth_img[self.center_of_mass[1], self.center_of_mass[0]] > 25:# and (d > 200 or dn > 200):
                     start = tuple(cnt[s][0])
                     end = tuple(cnt[e][0])
                     far = tuple(cnt[f][0])
@@ -116,7 +116,11 @@ class FingertipDetection:
                 self.window_size:tip[0] + self.window_size]
             if tip_window.size > 0:
                 # tip_depth = tip_window.max()
-                tip_depth = np.mean(tip_window[tip_window!=0])
+                if tip_window[tip_window>5].size>0:
+                    tip_window = tip_window[tip_window>5]
+                else:
+                    tip_window = tip_window[tip_window>0]
+                tip_depth = np.mean(tip_window)
                 if self.debug:
                     # print('depth: ', tip_depth)
                     cv2.rectangle(
@@ -128,8 +132,8 @@ class FingertipDetection:
                             np.array(tip) +
                             np.array([self.window_size, self.window_size])),
                         (255, 200, 200), 1)
-                # print(tip_depth)
-                if tip_depth < 10:# and tip_depth > 0:
+                print(tip_depth, tip_window.min(), tip_window.max())
+                if tip_depth < 15 and tip_window.max() < 35:# and tip_depth > 0:
                     if self.debug:
                         cv2.circle(self.debug_img, tip, 5, [100, 0, 255], -1)
                     touch_points.append(tip)

@@ -154,19 +154,19 @@ class CalibrateWorkspace:
 
 
 
-def main(args):
+# def main(args):
     
-    rospy.init_node("Calibration")
-    calib = CalibrateWorkspace('/kinect2/sd/image_color_rect', '/kinect2/sd/image_depth_rect', calib_rgb=args)
-    try:
-        rospy.spin()
-    except KeyboardInterrupt:
-        print("Shutting down")
+#     rospy.init_node("Calibration")
+#     calib = CalibrateWorkspace('/kinect2/sd/image_color_rect', '/kinect2/sd/image_depth_rect', calib_rgb=args)
+#     try:
+#         rospy.spin()
+#     except KeyboardInterrupt:
+#         print("Shutting down")
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Callibration type.')
-    parser.add_argument('--calib_rgb', metavar='T/F', type=bool, nargs='+',
-                    help='Calib RGB or Depth')
-    args = parser.parse_args()
-    print (args)
-    main(args.calib_rgb)
+# if __name__ == '__main__':
+#     parser = argparse.ArgumentParser(description='Callibration type.')
+#     parser.add_argument('--calib_rgb', metavar='T/F', type=bool, nargs='+',
+#                     help='Calib RGB or Depth')
+#     args = parser.parse_args()
+#     print (args)
+#     main(args.calib_rgb)
