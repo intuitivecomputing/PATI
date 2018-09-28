@@ -59,7 +59,9 @@ class TouchTracker(TrackerBase):
 
     def elapsed_time(self):
         if self.last_time != 0:
-            return self.time - self.last_time
+            elapsed = rospy.get_time() - self.time
+            # self.last_time = rospy.get_time()
+            return elapsed
         else:
             return 0
 
@@ -70,13 +72,19 @@ class TouchTracker(TrackerBase):
             # time each update
             self.last_time = self.time
             self.time = rospy.get_time()
+            self.interval = self.time - self.last_time
+            # print(self.id,self.time-self.last_time)
             # update touch point
             self.position_prev = self.position
             self.position = np.int0(np.array(self.position) * self.smoothing_factor + (1 - self.smoothing_factor) * np.array(pos))
+            self.displacement = euclidean_dist(self.position, self.position_prev)
             # self.position = pos
             self.state = CursorState['DRAGGED']
         else:
-            if self.release_cnt > 5:
+            self.time = rospy.get_time()
+            self.interval = self.time - self.last_time
+            print(self.interval)
+            if self.release_cnt > 5:#or self.interval >= 0.1:
                 self.state = CursorState['RELEASED']
             self.release_cnt += 1
 
@@ -119,6 +127,7 @@ class TouchTrackerManager(TrackingManagerBase):
                 if DEBUG: print('add pt', new_cursor.id.hex)
 
     def match_trackers(self, pts):
+        # when only one finger, allow more tolerence
         if len(pts) == 1:
             move_threshold = 100
         else:

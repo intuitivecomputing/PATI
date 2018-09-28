@@ -39,7 +39,7 @@ class TangibleSurface:
         self.use_skin_color_filter = use_skin_color_filter
         self.load_data()
         self.on_init()
-        # self.ur5_init()
+        self.ur5_init()
 
     def load_data(self):
         self.root_path = rospkg.RosPack().get_path('ropi_tangible_surface')
