@@ -9,6 +9,7 @@
 
 #include "ropi_msgs/MultiTouch.h"
 #include "ropi_msgs/SingleTouch.h"
+#include "ropi_msgs/DeleteSelection.h"
 
 #include "TUIO/TuioServer.h"
 #include "TUIO/TuioCursor.h"
@@ -32,7 +33,7 @@ class TouchSender
 
   private:
 	std::mutex mutex;
-
+	ros::ServiceServer delete_service_;
 	ros::Subscriber touch_sub_;
 	int width, height;
 	// int screen_width, screen_height;
@@ -43,6 +44,7 @@ class TouchSender
 	static const uint8_t CURSOR_DRAGGED = 1;
 	static const uint8_t CURSOR_RELEASED = 2;
 
+    bool deleteCursor(ropi_msgs::DeleteSelection::Request &req, ropi_msgs::DeleteSelection::Response &res);
 	void addCursor(const ropi_msgs::SingleTouch &cursor_msg);
 	void releaseCursor(std::string id);
 	void processCursors(const std::vector<ropi_msgs::SingleTouch> &touches);
@@ -155,6 +157,15 @@ void TouchSender::touchCallback(const ropi_msgs::MultiTouch::ConstPtr &msg)
 	tuio_server->stopUntouchedMovingCursors();
 	tuio_server->commitFrame();
 }
+bool TouchSender::deleteCursor(ropi_msgs::DeleteSelection::Request &req, 
+								ropi_msgs::DeleteSelection::Response &res)
+{
+	ROS_INFO_STREAM("release");
+	this->releaseCursor(req.guid);
+	res.success = true;
+	res.message = "delete";
+	return true;
+}
 
 TouchSender::TouchSender(TuioServer *server)
 	//: screen_width(1024), screen_height(768), window_width(320), window_height(200)
@@ -169,8 +180,9 @@ TouchSender::TouchSender(TuioServer *server)
 	tuio_server->setInversion(true, true, false);
 	tuio_server->enableObjectProfile(false);
 	tuio_server->enableBlobProfile(false);
+	delete_service_ = nh.advertiseService("delete_cursor", &TouchSender::deleteCursor, this);
 	touch_sub_ = nh.subscribe("touch", 100, &TouchSender::touchCallback, this);
-	ros::Rate r(50); // 50 hz
+	ros::Rate r(150); // 50 hz
 	while (ros::ok())
 	{
 		ros::spinOnce();
