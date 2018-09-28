@@ -259,7 +259,7 @@ class TangibleSurface:
         return mask
 
     def detect_fingertip(self, img):
-        threshed = my_threshold(img, 0, 300)
+        threshed = my_threshold(img, 0, 500)
         mask = np.zeros(img.shape, dtype=np.uint8)
         mask[threshed > 0] = 255
         dst = img.copy()
