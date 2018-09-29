@@ -104,16 +104,22 @@ void TouchSender::processCursors(const std::vector<ropi_msgs::SingleTouch> &touc
 		else if (cursor_msg.state == this->CURSOR_DRAGGED)
 		{
 			ROS_INFO_STREAM("Dragged.");
+			bool drag_matched = false;
 			for (auto &cur : this->cursor_list)
 			{
 				if (cursor_msg.id == cur.first)
-				{
+				{	drag_matched = true;
 					if (cur.second->getTuioTime() == frame_time)
-						return;
+						break;
 					std::cout << " Update: " << float((cursor_msg.cursor.x - 1) / width) << " " << float((cursor_msg.cursor.y - 1) / height) << std::endl;
 					this->tuio_server->updateTuioCursor(cur.second, float((cursor_msg.cursor.x - 1) / width), float((cursor_msg.cursor.y - 1) / height));
 					break;
 				}
+			}
+			if (!drag_matched)
+			{
+				ROS_INFO_STREAM("Unmatched drag");
+				this->addCursor(cursor_msg);
 			}
 		}
 		else if (cursor_msg.state == this->CURSOR_PRESSED)

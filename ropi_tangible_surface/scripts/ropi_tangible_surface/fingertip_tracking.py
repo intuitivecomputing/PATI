@@ -11,11 +11,11 @@ from ropi_msgs.msg import MultiTouch, SingleTouch
 from ropi_msgs.srv import *
 from geometry_msgs.msg import Point
 from ropi_tangible_surface.base_classes import *
-
+import uuid
 euclidean_dist = lambda pt1, pt2: np.abs(np.linalg.norm(np.array(pt1) - np.array(pt2)))
 ndargmin = lambda arr: np.unravel_index(arr.argmin(), arr.shape)
 
-CursorState = {'PRESSED': 0, 'DRAGGED': 1, 'RELEASED': 2}
+CursorState = {'PRESSED': 0, 'DRAGGED': 1, 'RELEASED': 2, 'UNDETERMINED': 3}
 
 class IDManager:
     '''
@@ -86,13 +86,14 @@ class TouchTracker(TrackerBase):
             self.interval = self.time - self.last_time
             # print(self.interval)
             if self.release_cnt > 5:#or self.interval >= 0.1:
-                self.state = CursorState['RELEASED']
+                self.state = CursorState['UNDETERMINED']
 
             self.release_cnt += 1
 
     # TODO: write a service for this
     def is_released(self):
         if self.release_cnt > 10:
+            
             return True
         else:
             return False
@@ -168,9 +169,11 @@ class TouchTrackerManager(TrackingManagerBase):
 
     def release_tracker(self, cur):
         try:
+            self.delete_cursor = rospy.ServiceProxy('delete_cursor', DeleteSelection)
             self.delete_cursor(cur.id.hex)
         except rospy.ServiceException, e:
             print "Service call failed: %s"%e
+        cur.state = CursorState['RELEASED']
         self.trackers.remove(cur)
         # if self.id_manager.release_id(cur.id):
         #     self.trackers.remove(cur)
