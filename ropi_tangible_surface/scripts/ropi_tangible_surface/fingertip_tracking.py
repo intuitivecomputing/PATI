@@ -8,6 +8,7 @@ import copy
 import itertools
 from enum import Enum
 from ropi_msgs.msg import MultiTouch, SingleTouch
+from ropi_msgs.srv import *
 from geometry_msgs.msg import Point
 from ropi_tangible_surface.base_classes import *
 
@@ -86,6 +87,7 @@ class TouchTracker(TrackerBase):
             # print(self.interval)
             if self.release_cnt > 5:#or self.interval >= 0.1:
                 self.state = CursorState['RELEASED']
+
             self.release_cnt += 1
 
     # TODO: write a service for this
@@ -107,10 +109,13 @@ class TouchTracker(TrackerBase):
 
 class TouchTrackerManager(TrackingManagerBase):
     def __init__(self, screen_shape):
+        rospy.wait_for_service('delete_cursor')
+        self.delete_cursor = rospy.ServiceProxy('delete_cursor', DeleteSelection)
         self.width, self.height = screen_shape
         self.trackers = []
         self.move_threshold = 50
         # self.id_manager = IDManager()
+        
 
     def update(self, pts):
         if DEBUG: print('update', pts)
@@ -147,10 +152,11 @@ class TouchTrackerManager(TrackingManagerBase):
                 self.trackers[arg_cur].update(pts[arg_pt])
             # TODO: fix this !!
         if DEBUG: print('Processed: ', processed_curs)
-
+        print('Processed: ', processed_curs)
         # add new trackers
         if DEBUG: print('pts: ', pts)
         if DEBUG: print('unmatched: ', unmatched_pts)
+        print('unmatched: ', unmatched_pts)
         self.new_trackers(unmatched_pts)
 
         # clear released trackers
@@ -161,6 +167,10 @@ class TouchTrackerManager(TrackingManagerBase):
                     self.release_tracker(cur)
 
     def release_tracker(self, cur):
+        try:
+            self.delete_cursor(cur.id.hex)
+        except rospy.ServiceException, e:
+            print "Service call failed: %s"%e
         self.trackers.remove(cur)
         # if self.id_manager.release_id(cur.id):
         #     self.trackers.remove(cur)
