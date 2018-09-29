@@ -54,6 +54,7 @@ class TouchTracker(TrackerBase):
         self.position_prev = pt
         self.last_time = 0
         self.time = rospy.get_time()
+        self.interval = 0
         self.state = CursorState['PRESSED']
         self.release_cnt = 0
         self.smoothing_factor = 0
@@ -87,13 +88,13 @@ class TouchTracker(TrackerBase):
             # print(self.interval)
             if self.release_cnt > 5:#or self.interval >= 0.1:
                 self.state = CursorState['UNDETERMINED']
-
+                print('RELESE INTERVAL', self.interval)
             self.release_cnt += 1
 
     # TODO: write a service for this
     def is_released(self):
-        if self.release_cnt > 10:
-            
+        # if self.release_cnt > 10:
+        if self.interval >= 0.45:
             return True
         else:
             return False
@@ -135,7 +136,7 @@ class TouchTrackerManager(TrackingManagerBase):
     def match_trackers(self, pts):
         # when only one finger, allow more tolerence
         if len(pts) == 1:
-            move_threshold = 100
+            move_threshold = 65
         else:
             move_threshold = self.move_threshold
 
@@ -153,11 +154,9 @@ class TouchTrackerManager(TrackingManagerBase):
                 self.trackers[arg_cur].update(pts[arg_pt])
             # TODO: fix this !!
         if DEBUG: print('Processed: ', processed_curs)
-        print('Processed: ', processed_curs)
         # add new trackers
         if DEBUG: print('pts: ', pts)
         if DEBUG: print('unmatched: ', unmatched_pts)
-        print('unmatched: ', unmatched_pts)
         self.new_trackers(unmatched_pts)
 
         # clear released trackers

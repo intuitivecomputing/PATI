@@ -43,6 +43,7 @@ class TouchSender
 	static const uint8_t CURSOR_PRESSED = 0;
 	static const uint8_t CURSOR_DRAGGED = 1;
 	static const uint8_t CURSOR_RELEASED = 2;
+	static const uint8_t CURSOR_UNDETERMINED = 3;
 
     bool deleteCursor(ropi_msgs::DeleteSelection::Request &req, ropi_msgs::DeleteSelection::Response &res);
 	void addCursor(const ropi_msgs::SingleTouch &cursor_msg);
@@ -101,6 +102,11 @@ void TouchSender::processCursors(const std::vector<ropi_msgs::SingleTouch> &touc
 			ROS_INFO_STREAM("Released.");
 			this->releaseCursor(cursor_msg.id);
 		}
+		else if (cursor_msg.state == this->CURSOR_UNDETERMINED)
+		{
+			ROS_INFO_STREAM("Releasing.");
+			// this->releaseCursor(cursor_msg.id);
+		}
 		else if (cursor_msg.state == this->CURSOR_DRAGGED)
 		{
 			ROS_INFO_STREAM("Dragged.");
@@ -108,7 +114,8 @@ void TouchSender::processCursors(const std::vector<ropi_msgs::SingleTouch> &touc
 			for (auto &cur : this->cursor_list)
 			{
 				if (cursor_msg.id == cur.first)
-				{	drag_matched = true;
+				{	
+					drag_matched = true;
 					if (cur.second->getTuioTime() == frame_time)
 						break;
 					std::cout << " Update: " << float((cursor_msg.cursor.x - 1) / width) << " " << float((cursor_msg.cursor.y - 1) / height) << std::endl;
