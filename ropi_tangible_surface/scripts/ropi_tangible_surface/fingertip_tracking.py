@@ -87,7 +87,7 @@ class TouchTracker(TrackerBase):
             self.interval = self.time - self.last_time
             # print(self.interval)
             if self.release_cnt > 6:#or self.interval >= 0.1:
-                print(self.interval)
+                # print(self.interval)
                 self.state = CursorState['UNDETERMINED']
                 print('RELESE INTERVAL', self.interval)
             self.release_cnt += 1
