@@ -48,6 +48,7 @@ class TangibleSurface:
         self.depth_background = np.load(self.root_path + '/config/depth.npy')
 
     def on_init(self):
+        rospy.loginfo("on init")
         # Instances
         self.bridge = CvBridge()
         self.touch_detections = [FingertipDetection()] * 2
@@ -67,6 +68,7 @@ class TangibleSurface:
                        '/kinect2/sd/image_depth_rect')
 
     def subscribe(self, img_topic, depth_topic):
+        rospy.loginfo('subscribing')
         depth_sub = message_filters.Subscriber(depth_topic, Image)
         rgb_sub = message_filters.Subscriber(img_topic, Image)
         self.ts = message_filters.TimeSynchronizer([depth_sub, rgb_sub], 20)
@@ -79,9 +81,11 @@ class TangibleSurface:
             'delete_selection', DeleteSelection, self.delete_selection_callback)
         self.move_server = rospy.Service(
             'move_objects', MoveObjects, self.move_objects_callback)
+        self.is_moving = False
         self.grasp_pub = rospy.Publisher('grasp_data', GraspData, queue_size=1)
 
     def ur5_init(self):
+        rospy.loginfo('init ur5')
         self.robot_interface = PickNPlace()
 
     def detect_objects_in_region(self, msg):
@@ -95,25 +99,32 @@ class TangibleSurface:
         # TODO: finish this
         rospy.loginfo("move objects service called.")
         response = MoveObjectsResponse()
-        mission = self.mission_from_regions(req.source_selection, req.target_selection)
-        # if there are objects in the region
-        if mission is not None:
-            response.success = True
-            response.message = '{} source objects detected.'.format(len(mission))
-            rospy.loginfo('mission generated, executing mission.')
-            # response.object_data = [x.make_msg() for x in mission]
-            # self.grasp_pub.publish([x.make_msg() for x in mission])
-            try:
-                self.robot_interface.pick_and_place_mission(mission)
-            except:
-                rospy.logerr('mission failed.')
+        if not self.is_moving:
+            self.is_moving = True
+            mission = self.mission_from_regions(req.source_selection, req.target_selection)
+            # if there are objects in the region
+            if mission is not None:
+                response.success = True
+                response.message = '{} source objects detected.'.format(len(mission))
+                rospy.loginfo('mission generated, executing mission.')
+                # response.object_data = [x.make_msg() for x in mission]
+                # self.grasp_pub.publish([x.make_msg() for x in mission])
+                try:
+                    self.robot_interface.pick_and_place_mission(mission)
+                except:
+                    rospy.logerr('mission failed.')
+                    response.success = False
+                    response.message = 'mission failed'
+                    return response
+            else:
                 response.success = False
-                response.message = 'mission failed'
+                response.message = 'No source objects detected.'
                 return response
+            self.is_moving = False
         else:
-            response.success = False
-            response.message = 'No source objects detected.'
-
+            rospy.logwarn('moving, rejected')
+        response.success = True
+        response.message = 'Running, duplicated request.'
         return response
 
     def place_position(self, pick_pos, source, target):
@@ -270,7 +281,7 @@ class TangibleSurface:
         merge_list = lambda l1, l2: l2 if not l1 else (l1 if not l2 else np.concatenate((l1, l2)))
         object_contours = []
         hand_contours = []
-        if len(contours) != 0:
+        if not self.is_moving or len(contours) != 0:
             contours = filter(lambda c: cv2.contourArea(c) > 200, contours)
             contours = np.asarray(sorted(
                 contours, key=lambda cnt: cv2.contourArea(cnt), reverse=True))
@@ -293,8 +304,6 @@ class TangibleSurface:
             if len(p) != 0: 
                 rospy.loginfo(repr(len(p)) + ' touch points: ' + repr(p))
             self.skin_pub.publish(self.bridge.cv2_to_imgmsg(debug_img))
-            
-
         return p
     
     def detect_object(self, img):
