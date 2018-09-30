@@ -93,8 +93,8 @@ class TouchTracker(TrackerBase):
 
     # TODO: write a service for this
     def is_released(self):
-        # if self.release_cnt > 10:
-        if self.interval >= 0.45:
+        if self.release_cnt > 10:
+        # if self.interval >= 0.45:
             return True
         else:
             return False
@@ -125,6 +125,7 @@ class TouchTrackerManager(TrackingManagerBase):
             self.new_trackers(pts)
         else: 
             self.match_trackers(pts)
+            # print(self.trackers)
 
     def new_trackers(self, pts):
         for pt in pts:
@@ -168,6 +169,7 @@ class TouchTrackerManager(TrackingManagerBase):
 
     def release_tracker(self, cur):
         try:
+            print('---------Cursor release-----------')
             self.delete_cursor = rospy.ServiceProxy('delete_cursor', DeleteSelection)
             self.delete_cursor(cur.id.hex)
         except rospy.ServiceException, e:
