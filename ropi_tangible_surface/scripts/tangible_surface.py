@@ -296,6 +296,7 @@ class TangibleSurface:
             debug_img = dst.copy()
             debug_img = cv2.cvtColor(
                 debug_img.astype(np.uint8)[:, :, np.newaxis], cv2.COLOR_GRAY2BGR)
+            # cv2.drawContours(debug_img, hand_contours, -1, (0,255,0), 1)
             # obj_debug_img = dst.copy()
             for i, cnt in enumerate(hand_candidate_contours[0:2]):
                 p_new = self.touch_detections[i].update(cnt, dst, debug_img)

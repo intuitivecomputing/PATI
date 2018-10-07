@@ -93,6 +93,7 @@ class FingertipDetection:
                     if tip_angle < 60 and tip_angle > 0 and tip_dist < 20 :
                         self.tip_points.append(tip_pt)
                         if self.debug:
+                            # cv2.drawContours(debug_img, cnt, -1, (0,255,0), 1)
                             cv2.line(self.debug_img, tip_pt, far, [0, 0, 255], 1)
                             cv2.line(self.debug_img, tip_pt, farn, [0, 0, 255], 1)
                             font = cv2.FONT_HERSHEY_SIMPLEX

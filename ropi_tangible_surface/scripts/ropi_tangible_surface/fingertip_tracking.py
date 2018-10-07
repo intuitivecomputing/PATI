@@ -94,7 +94,7 @@ class TouchTracker(TrackerBase):
 
     # TODO: write a service for this
     def is_released(self):
-        if self.release_cnt > 5:
+        if self.release_cnt > 10:
         # if self.interval >= 0.45:
             return True
         else:
