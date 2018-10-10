@@ -39,7 +39,7 @@ class TangibleSurface:
         self.use_skin_color_filter = use_skin_color_filter
         self.load_data()
         self.on_init()
-        self.ur5_init()
+        # self.ur5_init()
 
     def load_data(self):
         self.root_path = rospkg.RosPack().get_path('ropi_tangible_surface')
@@ -248,7 +248,7 @@ class TangibleSurface:
         except CvBridgeError as e:
             print(e)
 
-    def filter(self, mask, size=3):
+    def filter_mask(self, mask, size=3):
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (size, size))
         mask = cv2.erode(mask, kernel, iterations=2)
         mask = cv2.dilate(mask, kernel, iterations=2)
@@ -274,7 +274,7 @@ class TangibleSurface:
         mask = np.zeros(img.shape, dtype=np.uint8)
         mask[threshed > 0] = 255
         dst = img.copy()
-        mask = self.filter(mask)
+        mask = self.filter_mask(mask)
         dst[~mask.astype(np.bool)] = 0
         contours = self.find_contour(mask)
         p = []
@@ -293,7 +293,7 @@ class TangibleSurface:
             for cnt in contours:
                 if not np.any(hand_contours==cnt):
                     object_contours.append(cnt)
-            debug_img = dst.copy()
+            debug_img = mask.copy()
             debug_img = cv2.cvtColor(
                 debug_img.astype(np.uint8)[:, :, np.newaxis], cv2.COLOR_GRAY2BGR)
             # cv2.drawContours(debug_img, hand_contours, -1, (0,255,0), 1)
@@ -304,7 +304,7 @@ class TangibleSurface:
                 debug_img = self.touch_detections[i].debug_img
             if len(p) != 0: 
                 rospy.loginfo(repr(len(p)) + ' touch points: ' + repr(p))
-            self.skin_pub.publish(self.bridge.cv2_to_imgmsg(debug_img))
+            self.skin_pub.publish(self.bridge.cv2_to_imgmsg(debug_img, encoding="bgr8"))
         return p
     
     def detect_object(self, img):
@@ -313,7 +313,7 @@ class TangibleSurface:
         mask = np.zeros(img.shape, dtype=np.uint8)
         mask[threshed > 0] = 255
         dst = img.copy()
-        mask = self.filter(mask)
+        mask = self.filter_mask(mask)
         dst[~mask.astype(np.bool)] = 0
         contours = self.find_contour(mask)
         merge_list = lambda l1, l2: l2 if not l1 else (l1 if not l2 else np.concatenate((l1, l2)))

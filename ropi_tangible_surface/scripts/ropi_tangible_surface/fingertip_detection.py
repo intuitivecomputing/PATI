@@ -70,6 +70,16 @@ class FingertipDetection:
         self.center_of_mass = (cx, cy)
         # calculate convexity defects
         self.defects = cv2.convexityDefects(self.cnt, self.hull)
+        cv2.drawContours(debug_img, [cnt], 0, (0,255,0), 2)
+        # for i in range(self.defects.shape[0]):
+        #     s,e,f,d = self.defects[i,0]
+        #     start = tuple(cnt[s][0])
+        #     end = tuple(cnt[e][0])
+        #     far = tuple(cnt[f][0])
+        #     # cv2.line(debug_img,start,end,[0,0,255],2)
+        #     cv2.circle(debug_img,start,5,[0,255,255],2)
+        #     cv2.circle(debug_img,end,5,[255,255,0],2)
+        #     cv2.circle(debug_img,far,5,[255,0,0],-1)
         # evaluate defects two by two to get fingertips
         if self.defects is not None:
             # put first defect to the end
@@ -93,19 +103,25 @@ class FingertipDetection:
                     if tip_angle < 60 and tip_angle > 0 and tip_dist < 20 :
                         self.tip_points.append(tip_pt)
                         if self.debug:
-                            # cv2.drawContours(debug_img, cnt, -1, (0,255,0), 1)
-                            cv2.line(self.debug_img, tip_pt, far, [0, 0, 255], 1)
-                            cv2.line(self.debug_img, tip_pt, farn, [0, 0, 255], 1)
-                            font = cv2.FONT_HERSHEY_SIMPLEX
-                            cv2.circle(self.debug_img, tip_pt, 2, [100, 0, 255],
-                                    -1)
+                            pass
+                            # cv2.drawContours(debug_img, cnt, -1, (0,255,0), 2)
+                            cv2.line(self.debug_img, tip_pt, far, [255, 255, 0], 2)
+                            cv2.line(self.debug_img, tip_pt, farn, [255, 255, 0], 2)
+                            # font = cv2.FONT_HERSHEY_SIMPLEX
+                            # cv2.circle(self.debug_img, tip_pt, 2, [100, 0, 255],
+                                    # -1)
                             # cv2.putText(self.debug_img,'angle:' + str(angle),tip_pt, font, 0.5,(255,0,255),2,cv2.LINE_AA)
                     if self.debug:
+                        # pass
                         cv2.circle(self.debug_img, self.center_of_mass, 2, [100, 0, 255],
                                     -1)
-                        cv2.circle(self.debug_img, far, 2, [100, 0, 255], -1)
-                        cv2.circle(self.debug_img, start, 2, [255, 0, 0], -1)
-                        cv2.circle(self.debug_img, end, 2, [255, 0, 100], -1)
+                        # cv2.circle(self.debug_img, far, 2, [100, 0, 255], -1)
+                        # cv2.circle(self.debug_img, start, 2, [255, 0, 0], -1)
+                        # cv2.circle(self.debug_img, end, 2, [255, 0, 100], -1)
+                        cv2.line(debug_img,start,end,[0,0,255],2)
+                        cv2.circle(debug_img,start,5,[0,120,255],2)
+                        cv2.circle(debug_img,end,5,[255,120,0],2)
+                        cv2.circle(debug_img,far,5,[255,0,0],-1)
             self.tip_points = self.filter_tips(self.tip_points)
         return self.tip_points
 
@@ -122,20 +138,20 @@ class FingertipDetection:
                 else:
                     tip_window = tip_window[tip_window>0]
                 tip_depth = np.mean(tip_window)
-                if self.debug:
-                    # print('depth: ', tip_depth)
-                    cv2.rectangle(
-                        self.debug_img,
-                        tuple(
-                            np.array(tip) -
-                            np.array([self.window_size, self.window_size])),
-                        tuple(
-                            np.array(tip) +
-                            np.array([self.window_size, self.window_size])),
-                        (255, 200, 200), 1)
-                print(tip_depth, tip_window.min(), tip_window.max())
-                if tip_depth < 15 and tip_window.max() < 35:# and tip_depth > 0:
-                    if self.debug:
-                        cv2.circle(self.debug_img, tip, 5, [100, 0, 255], -1)
-                    touch_points.append(tip)
+                # if self.debug:
+                #     # print('depth: ', tip_depth)
+                #     cv2.rectangle(
+                #         self.debug_img,
+                #         tuple(
+                #             np.array(tip) -
+                #             np.array([self.window_size, self.window_size])),
+                #         tuple(
+                #             np.array(tip) +
+                #             np.array([self.window_size, self.window_size])),
+                #         (255, 200, 200), 1)
+                # print(tip_depth, tip_window.min(), tip_window.max())
+                # if tip_depth < 15 and tip_window.max() < 35:# and tip_depth > 0:
+                #     if self.debug:
+                #         cv2.circle(self.debug_img, tip, 5, [100, 0, 255], -1)
+                #     touch_points.append(tip)
         return touch_points

@@ -112,8 +112,8 @@ class TouchTracker(TrackerBase):
 
 class TouchTrackerManager(TrackingManagerBase):
     def __init__(self, screen_shape):
-        rospy.wait_for_service('delete_cursor')
-        self.delete_cursor = rospy.ServiceProxy('delete_cursor', DeleteSelection)
+        # rospy.wait_for_service('delete_cursor')
+        # self.delete_cursor = rospy.ServiceProxy('delete_cursor', DeleteSelection)
         self.width, self.height = screen_shape
         self.trackers = []
         self.move_threshold = 50
@@ -169,12 +169,12 @@ class TouchTrackerManager(TrackingManagerBase):
                     self.release_tracker(cur)
 
     def release_tracker(self, cur):
-        try:
-            print('---------Cursor release-----------')
-            self.delete_cursor = rospy.ServiceProxy('delete_cursor', DeleteSelection)
-            self.delete_cursor(cur.id.hex)
-        except rospy.ServiceException, e:
-            print "Service call failed: %s"%e
+        # try:
+        #     print('---------Cursor release-----------')
+        #     self.delete_cursor = rospy.ServiceProxy('delete_cursor', DeleteSelection)
+        #     self.delete_cursor(cur.id.hex)
+        # except rospy.ServiceException, e:
+        #     print "Service call failed: %s"%e
         cur.state = CursorState['RELEASED']
         self.trackers.remove(cur)
         # if self.id_manager.release_id(cur.id):
