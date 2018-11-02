@@ -9,6 +9,7 @@ from ropi_msgs.msg import GraspData
 from geometry_msgs.msg import Point
 
 class GraspDataClass:
+    '''container class for objects' information'''
     def __init__(self, position, diameter, angle, height):
         self.position = np.asarray(position)
         self.target_position = None
@@ -62,6 +63,11 @@ class ObjectManager:
             self.debug_img = img
 
     def update(self, cnts, depth_img, debug_img=None):
+        '''update objects
+        input: 
+            cnts: list of contours
+            depth_img: depth image for detection
+            debug_img(optional): rgb img for visualization'''
         self.init()
         output = []
         if self.debug and debug_img is None:
@@ -94,6 +100,7 @@ class ObjectManager:
         return debug_img
 
 class ObjectDetection:
+    '''object detection class'''
     def __init__(self, debug=True):
         self.clear()
         self.debug = debug
@@ -124,6 +131,13 @@ class ObjectDetection:
         self.debug_img = None
 
     def update(self, cnt, depth_img, debug_img=None):
+        '''   
+        make update
+        inputs:
+            cnt: contour of object
+            depth_img: depth image for detection
+            debug_img(optional): rgb img for visualization
+        '''
         self.clear()
         if self.debug and debug_img is None:
             self.set_debug_img(depth_img)

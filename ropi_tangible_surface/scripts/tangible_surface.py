@@ -48,6 +48,7 @@ class TangibleSurface:
         self.depth_background = np.load(self.root_path + '/config/depth.npy')
 
     def on_init(self):
+        '''init all modules'''
         rospy.loginfo("on init")
         # Instances
         self.bridge = CvBridge()
@@ -96,7 +97,7 @@ class TangibleSurface:
         return grasp_points
 
     def move_objects_callback(self, req):
-        # TODO: finish this
+        '''callback from move object request'''
         rospy.loginfo("move objects service called.")
         response = MoveObjectsResponse()
         if not self.is_moving:
@@ -135,6 +136,7 @@ class TangibleSurface:
         return target.normalized_rect.get_center() + relative_pos
 
     def mission_from_regions(self, source_region, target_region):
+        '''generate mission from source and target regions'''
         print('Source: ', source_region)
         print('Target: ', target_region)
         grasp_points = self.detect_objects_in_region(source_region)
@@ -155,6 +157,7 @@ class TangibleSurface:
             return None
 
     def delete_selection_callback(self, req):
+        '''callback function to delete a selection service'''
         rospy.loginfo("Delete selection service called.")
         print (self.selection_manager.selections)
         self.selection_manager.delete([req.guid])
@@ -186,6 +189,7 @@ class TangibleSurface:
         return response
 
     def image_callback(self, depth_in, rgb_in):
+        '''image preprocessing'''
         cv_rgb = self.rgb_callback(rgb_in)
         cv_depth = self.depth_callback(depth_in)
         depth_foreground = self.depth_background - cv_depth
@@ -270,6 +274,7 @@ class TangibleSurface:
         return mask
 
     def detect_fingertip(self, img):
+        '''finger tip detection and tracking pipeline'''
         threshed = my_threshold(img, 0, 500)
         mask = np.zeros(img.shape, dtype=np.uint8)
         mask[threshed > 0] = 255
@@ -308,6 +313,7 @@ class TangibleSurface:
         return p
     
     def detect_object(self, img):
+        '''object detection and tracking pipeline'''
         objects = []
         threshed = my_threshold(img, 5, 150)
         mask = np.zeros(img.shape, dtype=np.uint8)

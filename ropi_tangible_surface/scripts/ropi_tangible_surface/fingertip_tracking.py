@@ -49,7 +49,6 @@ DEBUG = False
 class TouchTracker(TrackerBase):
     def __init__(self, pt, id=None):
         super(TouchTracker, self).__init__()
-        # self.id = id
         self.position = pt
         self.position_prev = pt
         self.last_time = 0
@@ -60,6 +59,7 @@ class TouchTracker(TrackerBase):
         self.smoothing_factor = 0
 
     def elapsed_time(self):
+        '''Calculate elapsed time'''
         if self.last_time != 0:
             elapsed = rospy.get_time() - self.time
             # self.last_time = rospy.get_time()
@@ -68,6 +68,8 @@ class TouchTracker(TrackerBase):
             return 0
 
     def update(self, pos):
+        '''Make an update
+        input: fingertip position'''
         if pos is not None:
             # clear release cnt
             self.release_cnt = 0
@@ -121,6 +123,8 @@ class TouchTrackerManager(TrackingManagerBase):
         
 
     def update(self, pts):
+        '''Make an update
+        input: list of fingertip positions'''
         if DEBUG: print('update', pts)
         if len(self.trackers) == 0:
             self.new_trackers(pts)
@@ -129,6 +133,7 @@ class TouchTrackerManager(TrackingManagerBase):
             # print(self.trackers)
 
     def new_trackers(self, pts):
+        '''init new tracker'''
         for pt in pts:
             if not ma.is_masked(pt):
                 new_cursor = TouchTracker(pt)
@@ -136,6 +141,7 @@ class TouchTrackerManager(TrackingManagerBase):
                 if DEBUG: print('add pt', new_cursor.id.hex)
 
     def match_trackers(self, pts):
+        '''search and match existing points with incoming points'''
         # when only one finger, allow more tolerence
         if len(pts) == 1:
             move_threshold = 65
@@ -169,12 +175,13 @@ class TouchTrackerManager(TrackingManagerBase):
                     self.release_tracker(cur)
 
     def release_tracker(self, cur):
+        '''call release tracker service '''
         try:
             print('---------Cursor release-----------')
             self.delete_cursor = rospy.ServiceProxy('delete_cursor', DeleteSelection)
             self.delete_cursor(cur.id.hex)
-        except rospy.ServiceException, e:
-            print "Service call failed: %s"%e
+        except rospy.ServiceException as e:
+            print("Service call failed: %s"%e)
         cur.state = CursorState['RELEASED']
         self.trackers.remove(cur)
         # if self.id_manager.release_id(cur.id):
@@ -183,6 +190,7 @@ class TouchTrackerManager(TrackingManagerBase):
         #     if DEBUG: print('Cursor id release unsuccessful!!')
 
     def make_msg(self):
+        '''compile ros msg for communication'''
         msg = MultiTouch()
         msg.width = self.width
         msg.height = self.height
