@@ -1,1 +1,0 @@
-# ur5_gripper145

@@ -1,6 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-    <node pkg="robotiq_control" type="gripper_server" name="gripper_server">
-        
-    </node>
-</launch>

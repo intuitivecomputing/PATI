@@ -1,7 +1,0 @@
-string id_from
-string id_to
----
-bool success
-ropi_msgs/GraspData[] pick_data
-ropi_msgs/GraspData[] place_data
-string message

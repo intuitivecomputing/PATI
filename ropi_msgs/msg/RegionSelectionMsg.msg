@@ -1,8 +1,0 @@
-uint8 TYPE_OBJECT_SELECTION = 0
-uint8 TYPE_AREA_SELECTION = 1
-
-string guid
-geometry_msgs/Point center
-float32 width
-float32 height
-uint8 type

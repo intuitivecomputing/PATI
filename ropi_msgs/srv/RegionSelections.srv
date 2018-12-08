@@ -1,4 +1,0 @@
-ropi_msgs/RegionSelectionMsg[] data
----
-bool success
-string message
