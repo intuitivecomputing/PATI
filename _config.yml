@@ -1,1 +1,5 @@
+
+title: 'PATI: A Projection-Based Augmented Table-Top Interface for Robot Programming'
+description: PATI allows users to use common gestures and tools to teach their robots new tasks with direct reference to and interactions with the environment in an augmented, situated manner.
+show_downloads: true
 theme: jekyll-theme-cayman
