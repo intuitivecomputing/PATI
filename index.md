@@ -2,8 +2,8 @@
 layout: default
 ---
 <figure class="center">
-  <img src="figures/teaser-opt.jpg" alt="teaser-opt" />
-  <figcaption><i>PATI allows users to use common gestures and tools to teach their robots new tasks with direct reference to and interactions with the environment in an augmented, situated manner.</i></figcaption>
+  <img src="figures/teaser-opt.jpg" alt="teaser-opt" class="center"/>
+  <figcaption class="center"><i>PATI allows users to use common gestures and tools to teach their robots new tasks with direct reference to and interactions with the environment in an augmented, situated manner.</i></figcaption>
 </figure>
 
 # Abstract
@@ -11,9 +11,9 @@ As robots begin to enter human environments to provide individuals with daily as
 
 <figure class="center">
   <img src="figures/example-opt.jpg" alt="example-opt" class="center"/>
-  <figcaption><i>An example procedure of a user programming the robot to perform a pick-and-place task using PATI. (1)–(8) show the process of task specification, and (9)–(12) show the robot performing the programmed task.</i></figcaption>
+  <figcaption class="center"><i>An example procedure of a user programming the robot to perform a pick-and-place task using PATI. (1)–(8) show the process of task specification, and (9)–(12) show the robot performing the programmed task.</i></figcaption>
 </figure>
 <figure class="center">
   <img src="figures/applications-opt.jpg" alt="applications-opt" class="center"/>
-  <figcaption><i>Possible applications of PATI include (a) sorting, (b) assembly, (c) alignment, and (d) inspection. The colored arrows in (a) and (b) represent how objects would be sorted based on the color attributes.</i></figcaption>
+  <figcaption class="center"><i>Possible applications of PATI include (a) sorting, (b) assembly, (c) alignment, and (d) inspection. The colored arrows in (a) and (b) represent how objects would be sorted based on the color attributes.</i></figcaption>
 </figure>
